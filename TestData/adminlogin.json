@@ -1,0 +1,60 @@
+{
+    "invalidUser": {
+        "email": "test@example.com",
+        "password": "Pass@123"
+    },
+    "validUser": {
+        "email": "atishj@mailinator.com",
+        "password": "Test@123",
+        "fpemail": "test37@mailinator.com"
+    },
+    "URL": {
+        "url_1": "https://qa.procasaonboard.com/login",
+        "url_2": "https://qa.procasaonboard.com/database-dashboard"
+    },
+    "searchUser": {
+        "name": "Nikhil Mumbaikar",
+        "marketCenter": "America"
+    },
+    "Schedular": {
+        "eventName": "Automation Test Event",
+        "zone": "America/Denver",
+        "time": "10",
+        "amPm": "AM",
+        "eventEmail": "atishj@valueaddsofttech.com",
+        "eventSubject": "Automation Test Report Subject",
+        "eventBody": "Automation Test Report Email Body"
+    },
+    "Managestaff": {
+        "firstName": "royalta",
+        "lastName": "rauil",
+        "email": "royalta@yopmail.com",
+        "memberName": "Agent DAS"
+    },
+    "MarketCenter": {
+        "mcName": "Auto Test MC",
+        "mcId": "1234",
+        "firstName": "Saylo",
+        "lastName": "AutoN",
+        "email": "sayloaut@yopmail.com",
+        "role": "Team Leader",
+        "searchMC": "Pune"
+    },
+    "TopPerformer": {
+        "agentId": "673ae1e76e7837db1dff406e",
+        "searchName": "Agent"
+    },
+    "FAQ": {
+        "question": "Auto Test Question",
+        "answer": "Auto Test Answer"
+    },
+    "EmailNotification": {
+        "templateName": "Auto Test Template",
+        "sendTo": "atishj@valueaddsofttech.com",
+        "subject": "Auto Test Subject",
+        "body": "This is an auto test email body"
+    },
+    "DocumentLibrary": {
+        "folderName": "Auto Test MC folder"
+    }
+}

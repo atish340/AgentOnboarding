@@ -1,0 +1,26 @@
+{
+    "login": {
+        "username": "camerio@yopmail.com",
+        "password": "Test@123"
+    },
+    "AgentDetails": {
+        "firstName": "Udyam",
+        "lastName": "Singh",
+        "email": "udyams@yopmail.com",
+        "phone": "9087890989"
+    },
+    "TeamDetails": {
+        "teamName": "Automation Team ",
+        "teamLeader": "Khando Balal"
+    },
+    "EmailNotification": {
+        "templateName": "Auto Test Template by Staff",
+        "sendTo": "atishj@valueaddsofttech.com",
+        "subject": "Auto Test Subject",
+        "body": "This is an auto test email body"
+    },
+    "TrainingNvideosDetails": {
+        "title": "Auto Test Training Video",
+        "videoLink": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    }
+}

@@ -1,10 +1,10 @@
-import { expect } from '@playwright/test';
+const { expect } = require('@playwright/test');
 
-export class SchedulerPage {
+class SchedulerPage {
     constructor(page) {
         this.page = page;
         this.scheduleReportBtn = page.getByRole('button', { name: 'Schedule Report' });
-        this.confirmScheduleBtn = page.locator('//button[@class="border border-[#0000FE] h-[44px] rounded-lg app-blue bg-[#0000FE] hover:bg-[#0000F0] text-white px-5 py-2.5 text-center inline-flex items-center mr-4"]');
+        this.confirmScheduleBtn = page.locator('//button[contains(@class,"bg-[#0000FE]") and contains(@class,"rounded-lg") and contains(@class,"mr-4")]');
         this.nextBtn = page.getByRole('button', { name: 'Next' });
         this.eventNameField = page.locator('//*[@placeholder="Enter Event Name"]');
         this.timezoneDropdown = page.locator('div').filter({ hasText: /^Select timezoneUS\/PacificUS\/MountainUS\/CentralUS\/Eastern$/ }).getByRole('combobox');
@@ -13,7 +13,7 @@ export class SchedulerPage {
         this.recipientsField = page.locator('//input[@placeholder="Please enter comma seperated receipents email ids"]');
         this.subjectField = page.locator('//input[@placeholder="Enter Email Subject"]');
         this.bodyField = page.locator('//*[@data-placeholder="Placeholder Text"]');
-        this.sendBtn = page.locator('//*[@class="text-white bg-[#0000FE] font-medium rounded py-2.5 px-3 hover:bg-[#0056b3]"]');
+        this.sendBtn = page.getByRole('button', { name: 'Schedule' }).last();
     }
 
     async openScheduler() {
@@ -21,7 +21,8 @@ export class SchedulerPage {
         await expect(this.page.getByText('Schedule Report', { exact: true })).toBeVisible();
 
         const overlay = this.page.locator('div.absolute.bg-white.bg-opacity-60');
-        await overlay.waitFor({ state: 'hidden', timeout: 10000 });
+        try { await overlay.waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await overlay.waitFor({ state: 'hidden', timeout: 60000 });
 
         await this.confirmScheduleBtn.click();
     }
@@ -44,13 +45,21 @@ export class SchedulerPage {
         await this.page.locator('//*[@class="text-white bg-[#0000FE] font-medium rounded py-2.5 px-3 w-20 hover:bg-[#0056b3]"]').click();
     }
 
+    async waitForLoader() {
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+    }
+
     async goToEventNamePage() {
-        for (let i = 0; i < 10; i++) {
-            if (await this.page.getByText('Event Name').isVisible()) break;
+        // Check for actual input, not generic text that appears in earlier wizard steps
+        for (let i = 0; i < 20; i++) {
+            if (await this.eventNameField.isVisible()) break;
             await this.nextBtn.click();
-            await this.page.waitForTimeout(500);
+            // Wait for tab/step content to finish loading — resolves immediately on fast tabs,
+            // waits naturally on slow API-backed tabs; avoids the 3s try/catch loader overhead
+            await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         }
-        await expect(this.page.getByText('Event Name')).toBeVisible();
+        await expect(this.eventNameField).toBeVisible({ timeout: 30000 });
     }
 
     async fillEventDetails(eventName, timezone, hour, ampm, recipients, subject, body) {
@@ -67,3 +76,5 @@ export class SchedulerPage {
         await this.sendBtn.click();
     }
 }
+
+module.exports = { SchedulerPage };

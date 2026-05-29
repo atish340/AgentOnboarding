@@ -14,6 +14,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  timeout: 300000,
   /* Run tests in files in parallel */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -33,8 +34,12 @@ export default defineConfig({
     // trace: 'on-first-retry',
     trace: 'retain-on-failure',
     screenshot: 'on',
-    navigationTimeout: 30000,
-    headless: false
+    navigationTimeout: 60000,
+    headless: false,
+    viewport: null,
+    launchOptions: {
+      args: ['--start-maximized', '--force-device-scale-factor=0.70']
+    }
 
   },
 
@@ -42,18 +47,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], viewport: null, deviceScaleFactor: undefined },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {

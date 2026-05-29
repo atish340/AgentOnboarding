@@ -19,7 +19,7 @@ exports.TrainingNvideosPage = class TrainingNvideosPage {
 
     async navigateToTrainingNvideosPage() {
         await this.teamLink.click();
-        await expect(this.pageTitle).toHaveText('Training & Videos');
+        await expect(this.pageTitle).toHaveText('Manage Videos');
     }
     async addNewVideo({ category, title, link }) {
         await this.selectCategoryDropdown.selectOption({ label: category });
@@ -29,7 +29,7 @@ exports.TrainingNvideosPage = class TrainingNvideosPage {
         await this.requiredCheckbox.check();
         await this.saveButton.click();
     }
-    async switchToAgentTab() {
+    async switchToAgentTab({ title, link }) {
         await this.switchToAgent.click();
         await this.selectAgent.selectOption({ label: 'Khando Balal' });
         await this.addVideoButton.click();

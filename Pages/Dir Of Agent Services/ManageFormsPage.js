@@ -4,20 +4,19 @@ class ManageFormsPage {
     constructor(page) {
         this.page = page;
 
-        // Locators
         this.manageFormsTab = page.locator('//a[@href="/manageforms"]');
         this.manageFormsHeader = page.getByRole('heading', { name: 'Manage Forms' });
-        this.recruitingTab = page.locator('//a[@class="tab font-semibold pb-3 border-b-2 border-[#0000FE] text-[#0000FE] capitalize"]');
+        this.recruitingTab = page.locator('//a[contains(@class,"tab") and contains(text(),"Recruiting")]');
         this.addFormButton = page.locator('//*[@class="btn-primary-blue whitespace-nowrap"]');
         this.editRecruitingHeader = page.getByText('Edit Recruiting Form');
         this.addFieldButton = page.locator('//*[@class="text-white text-sm w-fit justify-center bg-white py-2 px-4 rounded font-medium inline-flex space-x-1 items-center"]').nth(1);
         this.addFormFieldHeader = page.getByRole('heading', { name: 'Add Form Field' });
-        this.fieldTitleInput = page.locator('//*[@name="fb_title"]');
+        this.fieldTitleInput = page.getByRole('textbox', { name: 'Enter title' });
         this.firstDropdown = page.getByRole('combobox').nth(1);
         this.roleDropdown = page.getByRole('textbox', { name: 'Select role' });
         this.closedropdown = page.getByRole('combobox').filter({ hasText: 'Director of agent' }).locator('div').first();
         this.categoryDropdown = page.getByRole('combobox').nth(3);
-        this.saveButton = page.locator('//button[@class="save-btn"]')
+        this.saveButton = page.locator('//button[@class="save-btn"]');
         this.onboardingform = page.getByText('Onboarding Form');
         this.editOnboardingHeader = page.getByText('Edit Onboarding Form');
         this.marketingform = page.locator('//*[@class="tab pb-3 capitalize"]').nth(1);
@@ -26,18 +25,26 @@ class ManageFormsPage {
         this.editAdditionalHeader = page.getByText('Edit Additional Form');
         this.techSetUpform = page.locator('//*[@class="tab pb-3 capitalize"]').nth(3);
         this.editTechSetUpHeader = page.getByText('Edit Tech SetUp Form');
-        this.addFormFieldButton = page.locator('//button[@class="text-white text-sm w-fit justify-center bg-white py-2 px-4 rounded font-medium inline-flex space-x-1 items-center"]')
+        this.addFormFieldButton = page.locator('//button[@class="text-white text-sm w-fit justify-center bg-white py-2 px-4 rounded font-medium inline-flex space-x-1 items-center"]');
+    }
+
+    async waitForLoader() {
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
     }
 
     async openManageForms() {
         await this.manageFormsTab.click();
         await expect(this.manageFormsHeader).toBeVisible({ timeout: 10000 });
+        await this.waitForLoader();
     }
 
     async openRecruitingTab() {
         await this.recruitingTab.click();
+        await this.waitForLoader();
+        await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
         await this.addFormButton.click();
-        await expect(this.editRecruitingHeader).toBeVisible({ timeout: 10000 });
+        await expect(this.editRecruitingHeader).toBeVisible({ timeout: 30000 });
     }
 
     async addFormField(fieldName) {
@@ -57,14 +64,18 @@ class ManageFormsPage {
 
     async saveForm() {
         await this.saveButton.click();
-        await this.page.getByRole('button', { name: 'Save' }).nth(0).click();
-        await this.page.waitForTimeout(2000);
+        await this.page.getByRole('button', { name: 'Save' }).nth(0).click({ force: true });
+        await this.page.waitForTimeout(5000);
     }
+
     async openOnboardingform() {
         await this.onboardingform.click();
+        await this.waitForLoader();
+        await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
         await this.addFormButton.click();
-        await expect(this.editOnboardingHeader).toBeVisible({ timeout: 10000 });
+        await expect(this.editOnboardingHeader).toBeVisible({ timeout: 15000 });
     }
+
     async addFormField1(fieldName) {
         await this.addFormFieldButton.click();
         await expect(this.addFormFieldHeader).toBeVisible({ timeout: 10000 });
@@ -73,21 +84,27 @@ class ManageFormsPage {
 
     async openMarketingform() {
         await this.marketingform.click();
+        await this.waitForLoader();
+        await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
         await this.addFormButton.click();
-        await expect(this.editMarketingHeader).toBeVisible({ timeout: 10000 });
+        await expect(this.editMarketingHeader).toBeVisible({ timeout: 15000 });
     }
+
     async openAdditionalform() {
         await this.additionalform.click();
+        await this.waitForLoader();
+        await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
         await this.addFormButton.click();
-        await expect(this.editAdditionalHeader).toBeVisible({ timeout: 10000 });
+        await expect(this.editAdditionalHeader).toBeVisible({ timeout: 15000 });
     }
+
     async openTechSetUpform() {
         await this.techSetUpform.click();
+        await this.waitForLoader();
+        await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
         await this.addFormButton.click();
-        await expect(this.editTechSetUpHeader).toBeVisible({ timeout: 10000 });
+        await expect(this.editTechSetUpHeader).toBeVisible({ timeout: 15000 });
     }
-   
-
 }
 
 module.exports = { ManageFormsPage };

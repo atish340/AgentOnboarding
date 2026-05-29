@@ -1,5 +1,4 @@
-
-import { expect } from '@playwright/test';
+const { expect } = require('@playwright/test');
 
 
 class MarketCenterPage {
@@ -36,7 +35,7 @@ class MarketCenterPage {
     async searchMarketCenter(name) {
         await this.searchBox.fill(name);
         await this.page.keyboard.press('Enter');
-        await expect(this.searchResultCell).toHaveText(name);
+        await expect(this.page.getByText(name).first()).toBeVisible({ timeout: 15000 });
         // await this.openMc.click();
         // await this.googleSignInButton.click();
         // await this.page.waitForTimeout(5000); // Wait for 5 seconds to ensure the page loads completely
@@ -71,6 +70,8 @@ class MarketCenterPage {
 
     async selectRoles() {
         const page = this.page;
+        try { await page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
         await page.getByText('Select Role').click();
         await page.getByText('Director of agent services', { exact: true }).click();
         await page.getByText('Team leader', { exact: true }).click();

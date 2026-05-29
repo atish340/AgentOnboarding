@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const TestData = require('../TestData/adminlogin.json');
-import { LoginPage } from '../Pages/Login/Login';
+const { LoginPage } = require('../Pages/Login/Login');
 
 test.describe('Login Page Tests', () => {
     test('should display correct login header', async ({ page }) => {
@@ -52,9 +52,6 @@ test.describe('Login Page Tests', () => {
         await loginPage.enterEmail(TestData.validUser.email);
         await loginPage.enterPassword(TestData.validUser.password);
         await loginPage.clickLoginButton();
-        // Wait for navigation or response after login click
-        await page.waitForTimeout(1000); // Adjust timeout as needed
-        // Add assertion
-        await expect(page).toHaveURL(TestData.URL.url_2);
+        await expect(page).toHaveURL(TestData.URL.url_2, { timeout: 30000 });
     });
 });

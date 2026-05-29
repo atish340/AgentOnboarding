@@ -1,0 +1,19 @@
+{
+    "login": {
+        "username": "khando@yopmail.com",
+        "password": "Test@123"
+    },
+    "Profile": {
+        "address": "Test automation'"
+    },
+    "Roster": {
+        "searchName": "Carlos Braithwet"
+    },
+    "Documentfolder": {
+        "folderName": "Test Sample folder",
+        "editFolderName": "Test Sample folder edit"
+    },
+    "teams": {
+        "searchTeamName": "Team Automation"
+    }
+}

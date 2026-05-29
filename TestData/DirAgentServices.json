@@ -20,6 +20,7 @@
         "body": "This is an auto test email body"
     },
     "TrainingNvideosDetails": {
+        "category": "R0",
         "title": "Auto Test Training Video",
         "videoLink": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     }

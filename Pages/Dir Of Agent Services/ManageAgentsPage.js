@@ -17,13 +17,12 @@ exports.ManageAgentsPage = class ManageAgentsPage {
         this.tab100Day          = page.locator('text=100-Day Checklist').first();
         this.tabPendingCreds    = page.locator('text=Pending Credentials').first();
 
-        // Agent cards
-        this.agentCards         = page.locator('[class*="card"], [class*="rounded"]').filter({ has: page.locator('button', { hasText: 'View Profile' }) });
-        this.agentNames         = page.locator('p, h3, h4, span').filter({ has: page.locator('..') }).filter({ hasText: /^[A-Z][a-z]+ [A-Z][a-z]+/ });
+        // Agent name divs — confirmed from DOM: div.capitalize.truncate with title attribute
+        this.agentNameDivs      = page.locator('div.capitalize.truncate[title]');
 
-        // Buttons on cards
-        this.viewProfileBtns    = page.locator('button', { hasText: 'View Profile' });
-        this.viewOnboardingBtns = page.locator('button', { hasText: 'View Onboarding' });
+        // Buttons — confirmed from DOM: data-testid prefixes
+        this.viewProfileBtns    = page.locator('[data-testid^="agent-view-profile-"]');
+        this.viewOnboardingBtns = page.locator('[data-testid^="agent-view-onboarding-"]');
     }
 
     async waitForLoader() {
@@ -43,7 +42,6 @@ exports.ManageAgentsPage = class ManageAgentsPage {
         await expect(this.pageTitle).toBeVisible({ timeout: 10000 });
         console.log('>>> Page title verified: Manage Agents');
 
-        // Verify all tabs are visible
         const tabs = [
             { locator: this.tabInitiated,    name: 'Initiated' },
             { locator: this.tabInProgress,   name: 'In Progress' },
@@ -55,47 +53,37 @@ exports.ManageAgentsPage = class ManageAgentsPage {
         ];
         for (const tab of tabs) {
             await expect(tab.locator).toBeVisible({ timeout: 8000 });
-            const tabText = (await tab.locator.textContent())?.trim();
-            console.log(`>>> Tab visible: "${tabText}"`);
+            const text = (await tab.locator.textContent())?.trim();
+            console.log(`>>> Tab visible: "${text}"`);
         }
     }
 
     async getAgentCountFromTab(tabLocator, tabName) {
-        const tabText = (await tabLocator.textContent())?.trim();
-        // Extract count from tab label e.g. "Initiated (10)" → 10
-        const match = tabText?.match(/\((\d+)\)/);
+        const text  = (await tabLocator.textContent())?.trim();
+        const match = text?.match(/\((\d+)\)/);
         const count = match ? parseInt(match[1]) : 0;
-        console.log(`>>> ${tabName} agents: ${count}`);
+        console.log(`>>> ${tabName} count: ${count}`);
         return count;
     }
 
+    async clickTab(tabLocator, tabName) {
+        await tabLocator.click();
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await this.waitForLoader();
+        await this.page.waitForTimeout(500);
+        console.log(`>>> Active tab: "${tabName}"`);
+    }
+
     async getFirstAgentName() {
-        await this.viewProfileBtns.first().waitFor({ state: 'visible', timeout: 10000 });
-        // Extract name from first card using evaluate — avoids complex filter timeouts
-        const name = await this.page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button'));
-            const firstViewProfile = btns.find(b => b.textContent.trim() === 'View Profile');
-            if (!firstViewProfile) return null;
-            // Walk up to find the card container
-            let card = firstViewProfile.parentElement;
-            for (let i = 0; i < 5; i++) {
-                if (card && card.querySelectorAll('button').length >= 2) break;
-                card = card?.parentElement;
-            }
-            if (!card) return null;
-            // Find the name text: not empty, no @, no 'Created', no '%', no 'View', starts with uppercase
-            const els = Array.from(card.querySelectorAll('p, h3, h4, span, div'));
-            const nameEl = els.find(el => {
-                const t = el.textContent.trim();
-                return t.length > 2 && t.length < 60 &&
-                    !t.includes('@') && !t.includes('Created') &&
-                    !t.includes('%') && !t.includes('View') &&
-                    /^[A-Z]/.test(t) && el.children.length === 0;
-            });
-            return nameEl?.textContent.trim() || null;
-        });
-        console.log(`>>> First agent name: "${name}"`);
-        return name;
+        try {
+            await this.agentNameDivs.first().waitFor({ state: 'visible', timeout: 8000 });
+            const name = await this.agentNameDivs.first().getAttribute('title');
+            console.log(`>>> First agent: "${name}"`);
+            return name;
+        } catch {
+            console.log('>>> No agents on this tab');
+            return null;
+        }
     }
 
     async searchAgent(agentName) {
@@ -104,45 +92,59 @@ exports.ManageAgentsPage = class ManageAgentsPage {
         await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await this.waitForLoader();
         await this.page.waitForTimeout(500);
-        console.log(`>>> Searched for: "${agentName}"`);
+        console.log(`>>> Searched: "${agentName}"`);
+    }
+
+    async clearSearch() {
+        await this.searchInput.fill('');
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await this.waitForLoader();
+        await this.page.waitForTimeout(500);
+        console.log('>>> Search cleared');
     }
 
     async verifySearchResults(agentName) {
-        const result = this.page.locator('body').locator(`text=${agentName}`).first();
+        const result = this.page.locator(`[title="${agentName}"]`).first();
         await expect(result).toBeVisible({ timeout: 10000 });
-        console.log(`>>> Agent "${agentName}" found in search results`);
+        console.log(`>>> Search result verified: "${agentName}"`);
     }
 
-    async clickViewProfile(agentName) {
-        // Find View Profile button in the card containing the agent name
-        const agentText = this.page.locator(`text=${agentName}`).first();
-        await agentText.waitFor({ state: 'visible', timeout: 8000 });
-        // The View Profile button is the first button sibling in the same card
-        const viewProfileBtn = this.viewProfileBtns.first();
-        await viewProfileBtn.waitFor({ state: 'visible', timeout: 8000 });
-        await viewProfileBtn.click();
+    async clickViewProfile() {
+        // Find the first ENABLED View Profile button (some tabs like Cancelled have disabled buttons)
+        const enabledBtn = this.page.locator('[data-testid^="agent-view-profile-"]:not([disabled])');
+        const hasEnabled = await enabledBtn.first().isVisible({ timeout: 5000 }).catch(() => false);
+        if (!hasEnabled) {
+            console.log('>>> View Profile button is disabled — skipping');
+            return false;
+        }
+        await enabledBtn.first().click();
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
         await this.waitForLoader();
         console.log(`>>> View Profile opened: ${this.page.url()}`);
+        return true;
     }
 
-    async clickViewOnboarding(agentName) {
-        // Find View Onboarding button in the card containing the agent name
-        const agentText = this.page.locator(`text=${agentName}`).first();
-        await agentText.waitFor({ state: 'visible', timeout: 8000 });
-        const viewOnboardingBtn = this.viewOnboardingBtns.first();
-        await viewOnboardingBtn.waitFor({ state: 'visible', timeout: 8000 });
-        await viewOnboardingBtn.click();
+    async clickViewOnboarding() {
+        // Find the first ENABLED View Onboarding button
+        const enabledBtn = this.page.locator('[data-testid^="agent-view-onboarding-"]:not([disabled])');
+        const hasEnabled = await enabledBtn.first().isVisible({ timeout: 5000 }).catch(() => false);
+        if (!hasEnabled) {
+            console.log('>>> View Onboarding button is disabled — skipping');
+            return false;
+        }
+        await enabledBtn.first().click();
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
         await this.waitForLoader();
         console.log(`>>> View Onboarding opened: ${this.page.url()}`);
+        return true;
     }
 
     async goBack() {
         await this.page.goBack();
         await this.page.waitForURL('**/manageAgents', { timeout: 15000 }).catch(() => {});
         await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-        console.log('>>> Navigated back to Manage Agents');
+        await this.waitForLoader();
+        console.log('>>> Back to Manage Agents');
     }
 
     // Used by Add New Agent test

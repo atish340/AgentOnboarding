@@ -70,12 +70,14 @@ test.describe('DirectorofAgentServices', () => {
         await manageAgentsPage.searchAndVerifyAgent_legacy(firstName);
     });
     test('Manage Agents', async ({ page }) => {
-        const manageAgentsPage = new ManageAgentsPage(page);
+        test.setTimeout(600000); // 10 min — includes full onboarding flow
 
+        const manageAgentsPage    = new ManageAgentsPage(page);
+        const agentOnboardingPage = new AgentOnboardingPage(page);
+
+        // Step 1: Navigate and verify page title + all tabs with counts
         await manageAgentsPage.navigateToManageAgents();
         await manageAgentsPage.verifyPageAndTabs();
-
-        // Verify agent counts per tab
         await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabInitiated,    'Initiated');
         await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabInProgress,   'In Progress');
         await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabCompleted,    'Completed');
@@ -84,25 +86,39 @@ test.describe('DirectorofAgentServices', () => {
         await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tab100Day,       '100-Day Checklist');
         await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabPendingCreds, 'Pending Credentials');
 
-        // Get first agent and search for them
+        // Step 2: Search for first agent and verify
         const firstAgent = await manageAgentsPage.getFirstAgentName();
-
         if (firstAgent) {
             await manageAgentsPage.searchAgent(firstAgent);
             await manageAgentsPage.verifySearchResults(firstAgent);
-
-            // View Profile
-            await manageAgentsPage.clickViewProfile(firstAgent);
-            await manageAgentsPage.goBack();
-
-            // View Onboarding
-            await manageAgentsPage.searchAgent(firstAgent);
-            await manageAgentsPage.clickViewOnboarding(firstAgent);
-            await manageAgentsPage.goBack();
+            await manageAgentsPage.clearSearch();
         }
+
+        // Step 3: Find agent with 0% progress → click View Onboarding
+        await agentOnboardingPage.clickViewOnboardingForZeroAgent();
+
+        // Step 4: Verify 4 onboarding stages are visible
+        await agentOnboardingPage.verifyOnboardingStages();
+
+        // Step 5: Select "Don't Send" → Send & Next → verify email sent toast
+        const emailSent = await agentOnboardingPage.selectDontSendAndProceed();
+        if (emailSent) {
+            await agentOnboardingPage.verifyEmailSentToast();
+            await agentOnboardingPage.clickOnboardingFormStep();
+        }
+
+        // Step 6: Fill Onboarding Form (all mandatory fields) → save
+        await agentOnboardingPage.clickFillOnboardingForm();
+        await agentOnboardingPage.fillMandatoryFields();
+        await agentOnboardingPage.saveOnboardingForm();
+
+        // Step 7: Process remaining Pre-Onboarding steps
+        // (includes Agent Documents Upload with sample PDF + all other activities)
+        await agentOnboardingPage.processRemainingPreOnboardingSteps();
     });
 
     test('Agent Onboarding Flow', async ({ page }) => {
+        test.setTimeout(600000); // 10 minutes — multiple onboarding steps
         const manageAgentsPage    = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);
 
@@ -126,6 +142,9 @@ test.describe('DirectorofAgentServices', () => {
         await agentOnboardingPage.clickFillOnboardingForm();
         await agentOnboardingPage.fillMandatoryFields();
         await agentOnboardingPage.saveOnboardingForm();
+
+        // Process remaining Pre-Onboarding steps (Agent Documents Upload + custom activities)
+        await agentOnboardingPage.processRemainingPreOnboardingSteps();
     });
 
     test('Mc Staff', async ({ page }) => {

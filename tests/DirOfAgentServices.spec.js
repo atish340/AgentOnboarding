@@ -115,6 +115,10 @@ test.describe('DirectorofAgentServices', () => {
         // Step 7: Process remaining Pre-Onboarding steps
         // (includes Agent Documents Upload with sample PDF + all other activities)
         await agentOnboardingPage.processRemainingPreOnboardingSteps();
+
+        // Step 8: Process Onboarding Activities (Stage 2)
+        // Command Profile (URL/Username/Password) + Marketing Form + Account Setup Checklist + Tech Set Up Form
+        await agentOnboardingPage.processOnboardingActivities();
     });
 
     test('Agent Onboarding Flow', async ({ page }) => {

@@ -783,4 +783,118 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
 
         console.log('>>> Pre-Onboarding Activities complete');
     }
+
+    // ── Stage 2: Onboarding Activities ───────────────────────────────────────────
+
+    async processOnboardingActivities() {
+        await this.page.waitForTimeout(1500).catch(() => {});
+        await this.waitForLoader().catch(() => {});
+        console.log('>>> Starting Onboarding Activities stage...');
+
+        // Navigate back to agent overview page to ensure stage tabs are accessible
+        const currentUrl = this.page.url();
+        const accountMatch = currentUrl.match(/\/accounts\/([a-f0-9]+)/);
+        if (accountMatch) {
+            const agentUrl = `https://qa.procasaonboard.com/accounts/${accountMatch[1]}`;
+            if (currentUrl !== agentUrl) {
+                await this.page.goto(agentUrl);
+                await this.page.waitForLoadState('domcontentloaded', { timeout: 20000 }).catch(() => {});
+                await this.waitForLoader();
+                await this.page.waitForTimeout(2000).catch(() => {});
+            }
+        }
+
+        // Click "Onboarding Activities" stage tab
+        const tab = this.page.locator('button', { hasText: /^Onboarding Activities$/ }).first();
+        const tabVisible = await tab.isVisible({ timeout: 8000 }).catch(() => false);
+        if (tabVisible) {
+            await tab.click();
+        } else {
+            // Fallback: evaluate-based click on any element with exact text
+            await this.page.evaluate(() => {
+                const all = Array.from(document.querySelectorAll('*'));
+                const el = all.find(e =>
+                    e.children.length === 0 &&
+                    e.textContent.trim() === 'Onboarding Activities' &&
+                    e.offsetParent !== null
+                );
+                if (el) el.closest('button, [role="tab"]')?.click() || el.click();
+            }).catch(() => {});
+        }
+        await this.page.waitForTimeout(2000).catch(() => {});
+        await this.waitForLoader().catch(() => {});
+        // Wait a bit more for the step list to populate
+        await this.page.waitForSelector('p.capitalize', { timeout: 5000 }).catch(() => {});
+        console.log(`>>> Onboarding Activities tab clicked: ${this.page.url()}`);
+
+        // Process each step using visited Set
+        const visited = new Set();
+        const MAX_STEPS = 10;
+
+        for (let i = 0; i < MAX_STEPS; i++) {
+            await this.page.waitForTimeout(800).catch(() => {});
+
+            const nextStep = await this.page.evaluate((visitedArr) => {
+                const all = Array.from(document.querySelectorAll('p.capitalize'));
+                for (const p of all) {
+                    const name = p.textContent.trim();
+                    if (name && !visitedArr.includes(name)) return name;
+                }
+                return null;
+            }, [...visited]).catch(() => null);
+
+            if (!nextStep) {
+                console.log('>>> No more Onboarding Activity steps — stage complete');
+                break;
+            }
+
+            visited.add(nextStep);
+            console.log(`\n>>> Onboarding Activity Step ${i + 1}: "${nextStep}"`);
+
+            // Click the step row in the left panel
+            const stepEl = this.page.locator('p.capitalize', { hasText: nextStep }).first();
+            await stepEl.click({ force: true }).catch(() => {});
+            await this.page.waitForTimeout(2500).catch(() => {});
+            await this.waitForLoader().catch(() => {});
+
+            // Fill all visible fields (handles URL/text/radio/checkbox/Yes-No/textarea/date)
+            await this.fillAllVisibleFields().catch(() => {});
+            await this.page.waitForTimeout(500).catch(() => {});
+
+            // Submit via SurveyJS complete button (input.sd-navigation__complete-btn)
+            // This covers all Onboarding Activity forms — value may be "Save & Next" or "Complete"
+            const submitted = await this.page.evaluate(() => {
+                // Try SurveyJS complete button first (input type="button")
+                const surveyBtn = document.querySelector('.sd-navigation__complete-btn');
+                if (surveyBtn && surveyBtn.offsetParent !== null) {
+                    surveyBtn.click();
+                    return 'survey-btn';
+                }
+                // Fallback: any button with "Save & Next" text
+                const allBtns = Array.from(document.querySelectorAll('button'));
+                const saveNext = allBtns.find(b =>
+                    /save\s*(&|and)\s*next/i.test(b.textContent.trim()) &&
+                    b.offsetParent !== null
+                );
+                if (saveNext) {
+                    saveNext.click();
+                    return 'save-next-btn';
+                }
+                return null;
+            }).catch(() => null);
+
+            if (submitted) {
+                console.log(`>>> Submitted "${nextStep}" via ${submitted}`);
+                await this.page.waitForTimeout(2500).catch(() => {});
+                await this.waitForLoader().catch(() => {});
+                const toast = this.page.locator('[data-testid="toast-body"], [data-testid="toast-content"]').first();
+                const msg = await toast.textContent({ timeout: 2000 }).catch(() => null);
+                if (msg) console.log(`>>> Toast: "${msg.trim()}"`);
+            } else {
+                console.log(`>>> "${nextStep}" — no submit button found, moving on`);
+            }
+        }
+
+        console.log('>>> Onboarding Activities stage complete');
+    }
 };

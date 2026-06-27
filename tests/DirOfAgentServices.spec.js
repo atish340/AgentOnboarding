@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test: base, expect } = require('@playwright/test');
 
 function randomLetters(len) {
     const chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -42,34 +42,39 @@ const { AgentOnboardingPage } = require('../Pages/Dir Of Agent Services/AgentOnb
 
 const TestData = require('../TestData/DirAgentServices.json');
 
+// Worker-scoped fixture: logs in ONCE per worker, reuses the same browser tab
+// for all tests so sessionStorage (where the app stores auth) is preserved.
+// Named 'sharedPage' to avoid Playwright's built-in 'page' scope restriction.
+const test = base.extend({
+    sharedPage: [async ({ browser }, use) => {
+        const ctx = await browser.newContext();
+        const page = await ctx.newPage();
 
+        await page.goto('https://qa.procasaonboard.com/login');
+        await page.waitForSelector('input[name=email]', { state: 'visible', timeout: 15000 });
+        await page.fill('input[name=email]', TestData.login.username);
+        await page.fill('input[name=password]', TestData.login.password);
+        await page.waitForSelector('button[type=submit]:not([disabled])', { timeout: 15000 });
+        await page.click('button[type=submit]');
+        await page.waitForURL(url => !url.href.includes('/login'), { timeout: 30000 });
+        console.log('✓ Logged in once — sharing this tab for all tests');
+
+        await use(page);
+
+        await ctx.close();
+    }, { scope: 'worker' }],
+});
 
 test.describe('DirectorofAgentServices', () => {
 
-
-    test.beforeEach(async ({ page }) => {
-        // Navigate to a protected page. If authed, Vue keeps us there. If not, Vue redirects to /login.
+    test.beforeEach(async ({ sharedPage: page }) => {
         await page.goto('https://qa.procasaonboard.com/dashboard', {
             waitUntil: 'domcontentloaded',
             timeout: 30000
         });
-        // Wait up to 8s to see if Vue redirects us TO /login (unauthenticated case).
-        // If no redirect within 8s, we're authenticated and can proceed.
-        const needsLogin = await page.waitForURL(
-            url => url.href.includes('/login'),
-            { timeout: 8000 }
-        ).then(() => true).catch(() => false);
-        if (!needsLogin) return; // Auth cookie valid — already on dashboard
-        // Redirected to /login — wait for form and log in
-        const loginPage = new LoginPage(page);
-        await page.waitForSelector('input[name=email]', { state: 'visible', timeout: 10000 });
-        await loginPage.enterEmail(TestData.login.username);
-        await loginPage.enterPassword(TestData.login.password);
-        await loginPage.clickLoginButton();
-        await page.waitForURL(url => !url.href.includes('/login'), { timeout: 60000 });
     });
 
-    test('Add New Agent', async ({ page }) => {
+    test('Add New Agent', async ({ sharedPage: page }) => {
         test.setTimeout(120000); // 2 min for 1 agent
         const addAgentPage = new AddAgentPage(page);
         let lastFirstName;
@@ -82,7 +87,7 @@ test.describe('DirectorofAgentServices', () => {
         const manageAgentsPage = new ManageAgentsPage(page);
         await manageAgentsPage.searchAndVerifyAgent_legacy(lastFirstName);
     });
-    test.skip('Manage Agents', async ({ page }) => {
+    test.skip('Manage Agents', async ({ sharedPage: page }) => {
         test.setTimeout(1800000); // 30 min — full onboarding flow can take long for agents with many steps
 
         const manageAgentsPage    = new ManageAgentsPage(page);
@@ -143,7 +148,7 @@ test.describe('DirectorofAgentServices', () => {
         await agentOnboardingPage.verifyAgentInCompletedTab();
     });
 
-    test.skip('Agent Onboarding Flow', async ({ page }) => {
+    test.skip('Agent Onboarding Flow', async ({ sharedPage: page }) => {
         test.setTimeout(600000); // 10 minutes — multiple onboarding steps
         const manageAgentsPage    = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);
@@ -173,7 +178,7 @@ test.describe('DirectorofAgentServices', () => {
         await agentOnboardingPage.processRemainingPreOnboardingSteps();
     });
 
-    test('Mc Staff', async ({ page }) => {
+    test('Mc Staff', async ({ sharedPage: page }) => {
         const mcStaffPage = new McStaffPage(page);
         await mcStaffPage.navigateToMcStaff();
         await mcStaffPage.searchStaff('Cargo Mik');
@@ -181,7 +186,7 @@ test.describe('DirectorofAgentServices', () => {
 
     });
 
-    test('Create Team', async ({ page }) => {
+    test('Create Team', async ({ sharedPage: page }) => {
         const teamPage = new TeamPage(page);
         await teamPage.navigateToTeamPage();
         const teamName = await teamPage.createNewTeam({
@@ -190,7 +195,7 @@ test.describe('DirectorofAgentServices', () => {
         await teamPage.searchAndVerifyTeam(teamName);
         await teamPage.openManageTeamAndAddMember();
     });
-    test('Create Tag', async ({ page }) => {
+    test('Create Tag', async ({ sharedPage: page }) => {
         const tagPage = new TagPage(page);
         await tagPage.navigateToTags();
         const tagName = await tagPage.createTag();
@@ -198,7 +203,7 @@ test.describe('DirectorofAgentServices', () => {
         await tagPage.addMemberToTag();
     });
 
-    test('Add form field in Manage Forms', async ({ page }) => {
+    test('Add form field in Manage Forms', async ({ sharedPage: page }) => {
         const manageForms = new ManageFormsPage(page);
 
         const suffix = randomLetters(4);
@@ -233,7 +238,7 @@ test.describe('DirectorofAgentServices', () => {
     });
 
 
-    test('Add Email Notification Template', async ({ page }) => {
+    test('Add Email Notification Template', async ({ sharedPage: page }) => {
         const emailNotificationPage = new EmailNotificationPage(page);
 
         await emailNotificationPage.openEmailNotificationTab();
@@ -248,7 +253,7 @@ test.describe('DirectorofAgentServices', () => {
 
     })
 
-    test('Training N Videos', async ({ page }) => {
+    test('Training N Videos', async ({ sharedPage: page }) => {
         const trainingNvideos = new TrainingNvideosPage(page);
         const videoTitle = generateVideoTitle();
         console.log(`>>> Video title: "${videoTitle}"`);
@@ -268,7 +273,7 @@ test.describe('DirectorofAgentServices', () => {
 
     });
 
-    test('Dashboard', async ({ page }) => {
+    test('Dashboard', async ({ sharedPage: page }) => {
         const dashboardPage = new DashboardPage(page);
 
         await dashboardPage.navigateToDashboard();
@@ -284,7 +289,7 @@ test.describe('DirectorofAgentServices', () => {
         await dashboardPage.downloadDashboard();
     });
 
-    test('Agent Roster', async ({ page }) => {
+    test('Agent Roster', async ({ sharedPage: page }) => {
         const agentRosterPage = new AgentRosterPage(page);
 
         await agentRosterPage.navigateToAgentRosterPage();
@@ -296,7 +301,7 @@ test.describe('DirectorofAgentServices', () => {
         await agentRosterPage.clickAgentAndVerifyProfile(agentName);
     });
 
-    test('Bulk Task', async ({ page }) => {
+    test('Bulk Task', async ({ sharedPage: page }) => {
         const bulkTaskPage = new BulkTaskPage(page);
         const taskTitle = generateTaskTitle();
         console.log(`>>> Task title: "${taskTitle}"`);
@@ -311,7 +316,7 @@ test.describe('DirectorofAgentServices', () => {
         await bulkTaskPage.verifySuccessToast();
     });
 
-    test('100 Day Checklist', async ({ page }) => {
+    test('100 Day Checklist', async ({ sharedPage: page }) => {
         const checklistPage = new HundredDayChecklistPage(page);
 
         await checklistPage.navigateToChecklist();
@@ -342,7 +347,7 @@ test.describe('DirectorofAgentServices', () => {
         }
     });
 
-    test('Daily Snapshot', async ({ page }) => {
+    test('Daily Snapshot', async ({ sharedPage: page }) => {
         const dailySnapshotPage = new DailySnapshotPage(page);
 
         await dailySnapshotPage.navigateToDailySnapshot();
@@ -350,7 +355,7 @@ test.describe('DirectorofAgentServices', () => {
         await dailySnapshotPage.clickRandomSnapshot(count);
     });
 
-    test('Database Dashboard', async ({ page }) => {
+    test('Database Dashboard', async ({ sharedPage: page }) => {
         const dbPage = new DatabaseDashboardPage(page);
 
         await dbPage.navigateToDatabaseDashboard();
@@ -372,7 +377,7 @@ test.describe('DirectorofAgentServices', () => {
         await dbPage.fillAndSchedule();
     });
 
-    test('Document Library', async ({ page }) => {
+    test('Document Library', async ({ sharedPage: page }) => {
         const folderName = `DocFolder_${randomLetters(5)}`;
         console.log(`>>> Creating folder: "${folderName}"`);
         const docLibrary = new DocumentLibraryPage(page);
@@ -383,7 +388,7 @@ test.describe('DirectorofAgentServices', () => {
         await docLibrary.deleteFolder();
     });
 
-    test('Calendar', async ({ page }) => {
+    test('Calendar', async ({ sharedPage: page }) => {
         const chars = 'abcdefghijklmnopqrstuvwxyz';
         const len = Math.floor(Math.random() * 5) + 4; // 4-8 chars
         const eventTitle = Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -400,7 +405,7 @@ test.describe('DirectorofAgentServices', () => {
         await calendarPage.submitEvent();
         await calendarPage.verifyEventAdded();
     });
-    test('Checklist Creation Flow', async ({ page }) => {
+    test('Checklist Creation Flow', async ({ sharedPage: page }) => {
 
         const checklist = new ChecklistPage(page);
         await checklist.openChecklist();

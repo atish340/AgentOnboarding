@@ -27,8 +27,8 @@ class EmailNotificationPage {
     }
 
     async openEmailNotificationTab() {
-        await this.emailNotificationTab.click();
-        await expect(this.header).toBeVisible({ timeout: 10000 });
+        await this.page.goto('https://qa.procasaonboard.com/emailnotification', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.header).toBeVisible({ timeout: 15000 });
     }
 
     async addEmailTemplate(templateName, email, subject, body) {

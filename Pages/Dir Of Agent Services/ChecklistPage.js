@@ -208,8 +208,8 @@ exports.ChecklistPage = class ChecklistPage {
     }
 
     async openChecklist() {
-        await this.checklistLink.click();
-        await expect(this.pageTitle).toBeVisible();
+        await this.page.goto('https://qa.procasaonboard.com/checklist', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.pageTitle).toBeVisible({ timeout: 15000 });
     }
 
     async createNewVersion() {

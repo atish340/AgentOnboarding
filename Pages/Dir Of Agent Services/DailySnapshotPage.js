@@ -9,8 +9,7 @@ exports.DailySnapshotPage = class DailySnapshotPage {
     }
 
     async navigateToDailySnapshot() {
-        await this.menuLink.click();
-        await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+        await this.page.goto('https://qa.procasaonboard.com/dailysnapshot', { waitUntil: 'domcontentloaded', timeout: 30000 });
         await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await expect(this.pageTitle).toBeVisible({ timeout: 10000 });
         console.log(`>>> Daily Snapshot page opened: ${this.page.url()}`);

@@ -27,8 +27,8 @@ exports.TagPage = class TagPage {
     }
 
     async navigateToTags() {
-        await this.tagLink.click();
-        await expect(this.pageTitle).toHaveText('Tags');
+        await this.page.goto('https://qa.procasaonboard.com/tags', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.pageTitle).toHaveText('Tags', { timeout: 15000 });
     }
 
     async createTag() {
@@ -38,12 +38,22 @@ exports.TagPage = class TagPage {
         await this.createTagButton.click();
         await expect(this.tagModalTitle).toHaveText('Create Tag');
         await this.tagNameInput.fill(tagName);
-        await this.createBtn.click();
+        // wait for loader to clear, then dispatch click to bypass any overlay
+        const loader = this.page.locator('div.absolute.bg-white.bg-opacity-60');
+        await loader.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+        await this.page.waitForTimeout(500);
+        await this.createBtn.dispatchEvent('click');
 
         // verify toast
         await expect(this.successToast).toBeVisible({ timeout: 15000 });
         const toastText = await this.successToast.textContent();
         console.log(`>>> Toast: ${toastText}`);
+
+        // stay on tags page — navigate back if the app redirected away
+        if (!this.page.url().includes('/tags')) {
+            await this.page.goto('https://qa.procasaonboard.com/tags', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        }
+        await this.page.waitForTimeout(1000);
 
         return tagName;
     }

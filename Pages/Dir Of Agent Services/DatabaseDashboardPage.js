@@ -23,10 +23,9 @@ exports.DatabaseDashboardPage = class DatabaseDashboardPage {
     }
 
     async navigateToDatabaseDashboard() {
-        await this.menuLink.click();
-        await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+        await this.page.goto('https://qa.procasaonboard.com/database-dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 });
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-        await expect(this.pageTitle).toBeVisible({ timeout: 10000 });
+        await expect(this.searchInput).toBeVisible({ timeout: 15000 });
         console.log(`>>> Database Dashboard page opened: ${this.page.url()}`);
     }
 

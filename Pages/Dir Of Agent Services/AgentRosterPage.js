@@ -16,10 +16,9 @@ exports.AgentRosterPage = class AgentRosterPage {
     }
 
     async navigateToAgentRosterPage() {
-        await this.agentRosterLink.click();
-        await this.page.waitForURL('**/viewAgent', { timeout: 15000 });
-        await this.page.waitForLoadState('networkidle');
-        await expect(this.pageTitle).toHaveText('Agent Roster');
+        await this.page.goto('https://qa.procasaonboard.com/viewAgent', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await expect(this.pageTitle).toHaveText('Agent Roster', { timeout: 15000 });
         console.log('>>> Agent Roster page verified open');
     }
 

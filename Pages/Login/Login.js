@@ -23,7 +23,16 @@ exports.LoginPage =
         }
 
         async clickLoginButton() {
+            // Wait for button to be enabled (page may still be loading/hydrating)
+            await this.page.waitForSelector(`${this.loginButton}:not([disabled])`, { timeout: 30000 });
             await this.page.click(this.loginButton);
+
+            // If still on login page after 5s, button may have been re-disabled — retry once
+            await this.page.waitForTimeout(5000);
+            if (this.page.url().includes('/login')) {
+                await this.page.waitForSelector(`${this.loginButton}:not([disabled])`, { timeout: 15000 }).catch(() => {});
+                await this.page.click(this.loginButton).catch(() => {});
+            }
         }
 
         async clickForgotPassword() {

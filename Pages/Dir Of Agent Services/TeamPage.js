@@ -88,8 +88,8 @@ exports.TeamPage = class TeamPage {
     }
 
     async navigateToTeamPage() {
-        await this.teamLink.click();
-        await expect(this.pageTitle).toHaveText('Teams');
+        await this.page.goto('https://qa.procasaonboard.com/teams', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.pageTitle).toHaveText('Teams', { timeout: 15000 });
     }
 
     async createNewTeam({ teamLeader }) {
@@ -111,6 +111,12 @@ exports.TeamPage = class TeamPage {
         // verify success toast
         await expect(this.successToast).toBeVisible({ timeout: 15000 });
         console.log(`>>> Toast: Team created successfully`);
+
+        // stay on teams page — navigate back if the app redirected away
+        if (!this.page.url().includes('/teams')) {
+            await this.page.goto('https://qa.procasaonboard.com/teams', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        }
+        await this.page.waitForTimeout(1000);
 
         return teamName;
     }

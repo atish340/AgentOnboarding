@@ -19,9 +19,8 @@ exports.HundredDayChecklistPage = class HundredDayChecklistPage {
     }
 
     async navigateToChecklist() {
-        await this.menuLink.click();
-        await this.page.waitForURL('**/checklist-dashboard', { timeout: 15000 });
-        await this.page.waitForLoadState('networkidle');
+        await this.page.goto('https://qa.procasaonboard.com/checklist-dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await expect(this.pageTitle).toHaveText("100 Day's Checklist", { timeout: 10000 });
         console.log(">>> 100-Day Checklist page opened");
     }

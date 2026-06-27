@@ -17,13 +17,12 @@ exports.BulkTaskPage = class BulkTaskPage {
         // Save button for bulk task form
         this.saveButton        = page.locator('button.btn-primary-blue.ml-4.w-20').first();
         // Toast
-        this.successToast      = page.locator('[data-testid="toast-body"]');
+        this.successToast      = page.locator('[data-testid="toast-body"]').first();
     }
 
     async navigateToBulkTask() {
-        await this.bulkTaskLink.click();
-        await this.page.waitForURL('**/bulkTask', { timeout: 15000 });
-        await this.page.waitForLoadState('networkidle');
+        await this.page.goto('https://qa.procasaonboard.com/bulkTask', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await expect(this.pageTitle).toHaveText('Add Activity', { timeout: 10000 });
         console.log('>>> Bulk Task page verified open');
     }

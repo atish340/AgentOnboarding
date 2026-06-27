@@ -35,6 +35,7 @@ export default defineConfig({
     trace: 'off',
     screenshot: 'on',
     navigationTimeout: 60000,
+    actionTimeout: 30000,
     headless: false,
     viewport: null,
     launchOptions: {

@@ -9,9 +9,8 @@ exports.DashboardPage = class DashboardPage {
     }
 
     async navigateToDashboard() {
-        await this.dashboardLink.click();
-        await this.page.waitForURL('**/dashboard', { timeout: 15000 });
-        await this.page.waitForLoadState('networkidle');
+        await this.page.goto('https://qa.procasaonboard.com/dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await this.dismissPreferenceDialog();
     }
 

@@ -27,8 +27,7 @@ exports.DocumentLibraryPage = class DocumentLibraryPage {
     }
 
     async navigateToDocumentLibrary() {
-        await this.menuLink.click();
-        await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+        await this.page.goto('https://qa.procasaonboard.com/documentlibrary', { waitUntil: 'domcontentloaded', timeout: 30000 });
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
         await expect(this.pageTitle).toBeVisible({ timeout: 10000 });
         await this.waitForLoader();
@@ -51,6 +50,12 @@ exports.DocumentLibraryPage = class DocumentLibraryPage {
         await expect(this.toastMessage).toBeVisible({ timeout: 15000 });
         const msg = (await this.toastMessage.textContent())?.trim();
         console.log(`>>> Folder created: "${folderName}" — toast: "${msg}"`);
+
+        // stay on document library — navigate back if the app redirected away
+        if (!this.page.url().includes('/documentlibrary')) {
+            await this.page.goto('https://qa.procasaonboard.com/documentlibrary', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        }
+        await this.waitForLoader();
     }
 
     async searchFolder(folderName) {

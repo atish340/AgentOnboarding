@@ -23,11 +23,28 @@ exports.AddAgentPage = class AddAgentPage {
         this.lastNameInput = page.locator('//input[@placeholder="Enter last name"]');
         this.emailInput = page.locator('//input[@placeholder="Enter email"]');
         this.phoneInput = page.locator('//input[@placeholder="(999)-999-9999"]');
-        this.roleRadio = page.locator('//label[.//input[@value="R0"]]');
+        this.roleRadio = page.locator('label').filter({ hasText: /Unlicensed\s*Staff/i }).first();
         this.termsCheckbox = page.locator('//label[.//input[@name="Standard termsItem 1"]]');
         this.saveButton = page.locator('//input[@type="button" and @title="Save"]');
         // success image shown after save (navigates to /manageAgents)
         this.successImage = page.locator('//img[@alt="play_icon"]');
+    }
+
+    async waitForLoader() {
+        const loader = this.page.locator('div.absolute.bg-white.bg-opacity-60');
+        try { await loader.waitFor({ state: 'visible', timeout: 2000 }); } catch {}
+        await loader.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
+    }
+
+    async dismissDialogs() {
+        // Dismiss any blocking dialogs (e.g. "Save Duration Preference", confirmations)
+        for (const btnText of [/^No$/i, /^Cancel$/i, /^close$/i]) {
+            const btn = this.page.locator('button').filter({ hasText: btnText }).first();
+            if (await btn.isVisible({ timeout: 1000 }).catch(() => false)) {
+                await btn.click().catch(() => {});
+                await this.page.waitForTimeout(300);
+            }
+        }
     }
 
     async addNewAgent() {
@@ -38,21 +55,53 @@ exports.AddAgentPage = class AddAgentPage {
 
         console.log(`>>> Adding agent: ${firstName} ${lastName} | ${email} | ${phone}`);
 
+        // Step 1: Navigate to Manage Agents
+        await this.page.goto('https://qa.procasaonboard.com/manageAgents', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        console.log('>>> Navigated to Manage Agents');
+
+        // Step 2: Wait for page to fully load
+        await this.waitForLoader();
+        await this.dismissDialogs();
+        await this.page.waitForTimeout(1000);
+
+        // Step 3: Wait for + New Agent button to be visible and click it
+        await this.addAgentButton.waitFor({ state: 'visible', timeout: 30000 });
+        console.log('>>> Clicking + New Agent button');
         await this.addAgentButton.click();
 
-        // wait for form to be ready
-        await this.firstNameInput.waitFor({ state: 'visible', timeout: 15000 });
+        // Step 4: Wait for form to fully load
+        await this.waitForLoader();
+        await this.page.waitForTimeout(1000);
+        await this.firstNameInput.waitFor({ state: 'visible', timeout: 30000 });
+        await this.waitForLoader();
+        console.log('>>> Form loaded — filling details');
+        await this.page.waitForTimeout(500);
 
         await this.firstNameInput.fill(firstName);
+        await this.page.waitForTimeout(300);
         await this.lastNameInput.fill(lastName);
+        await this.page.waitForTimeout(300);
         await this.emailInput.fill(email);
+        await this.page.waitForTimeout(300);
         await this.phoneInput.fill(phone);
+        await this.page.waitForTimeout(300);
+
+        // Wait for role radio then click Unlicensed Staff
+        await this.roleRadio.waitFor({ state: 'visible', timeout: 10000 });
         await this.roleRadio.click();
+        await this.page.waitForTimeout(500);
+
+        // Wait for terms checkbox then click
+        await this.termsCheckbox.waitFor({ state: 'visible', timeout: 10000 });
         await this.termsCheckbox.click();
+        await this.page.waitForTimeout(500);
+
+        // Wait for save button then click
+        await this.saveButton.waitFor({ state: 'visible', timeout: 10000 });
         await this.saveButton.click();
 
-        // app auto-navigates to /manageAgents after save — navigation confirms success
-        await this.page.waitForURL('**/manageAgents', { timeout: 30000 });
+        // Wait for navigation back to manageAgents
+        await this.page.waitForURL(/manageAgents/, { timeout: 30000 });
         console.log(`>>> Agent saved — navigated to Manage Agents`);
 
         return { firstName, lastName, email };

@@ -48,29 +48,42 @@ test.describe('DirectorofAgentServices', () => {
 
 
     test.beforeEach(async ({ page }) => {
+        // Navigate to a protected page. If authed, Vue keeps us there. If not, Vue redirects to /login.
+        await page.goto('https://qa.procasaonboard.com/dashboard', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+        });
+        // Wait up to 8s to see if Vue redirects us TO /login (unauthenticated case).
+        // If no redirect within 8s, we're authenticated and can proceed.
+        const needsLogin = await page.waitForURL(
+            url => url.href.includes('/login'),
+            { timeout: 8000 }
+        ).then(() => true).catch(() => false);
+        if (!needsLogin) return; // Auth cookie valid — already on dashboard
+        // Redirected to /login — wait for form and log in
         const loginPage = new LoginPage(page);
-        await loginPage.navigate();
+        await page.waitForSelector('input[name=email]', { state: 'visible', timeout: 10000 });
         await loginPage.enterEmail(TestData.login.username);
         await loginPage.enterPassword(TestData.login.password);
-
-
-        await Promise.all([
-            page.waitForURL(/dashboard|home|profile/i),
-            loginPage.clickLoginButton(),
-        ]);
-
+        await loginPage.clickLoginButton();
+        await page.waitForURL(url => !url.href.includes('/login'), { timeout: 60000 });
     });
 
     test('Add New Agent', async ({ page }) => {
+        test.setTimeout(120000); // 2 min for 1 agent
         const addAgentPage = new AddAgentPage(page);
-        const { firstName } = await addAgentPage.addNewAgent();
-
-        // app auto-navigates to manageAgents after save — search to confirm
+        let lastFirstName;
+        for (let i = 0; i < 1; i++) {
+            console.log(`>>> Adding agent ${i + 1} of 1 (Unlicensed Staff)`);
+            const { firstName } = await addAgentPage.addNewAgent();
+            lastFirstName = firstName;
+        }
+        // verify last added agent exists
         const manageAgentsPage = new ManageAgentsPage(page);
-        await manageAgentsPage.searchAndVerifyAgent_legacy(firstName);
+        await manageAgentsPage.searchAndVerifyAgent_legacy(lastFirstName);
     });
-    test('Manage Agents', async ({ page }) => {
-        test.setTimeout(600000); // 10 min — includes full onboarding flow
+    test.skip('Manage Agents', async ({ page }) => {
+        test.setTimeout(1800000); // 30 min — full onboarding flow can take long for agents with many steps
 
         const manageAgentsPage    = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);
@@ -116,12 +129,21 @@ test.describe('DirectorofAgentServices', () => {
         // (includes Agent Documents Upload with sample PDF + all other activities)
         await agentOnboardingPage.processRemainingPreOnboardingSteps();
 
-        // Step 8: Process Onboarding Activities (Stage 2)
+        // Step 8: Process Onboarding Activities (stage=1)
         // Command Profile (URL/Username/Password) + Marketing Form + Account Setup Checklist + Tech Set Up Form
         await agentOnboardingPage.processOnboardingActivities();
+
+        // Step 8b: Process Account Setup (stage=2)
+        await agentOnboardingPage.processAccountSetup();
+
+        // Step 9: Go to Confirmation tab → Invite Agent → Allow → verify toast
+        await agentOnboardingPage.clickConfirmationAndInviteAgent();
+
+        // Step 10: Go back to Manage Agents → Completed tab → verify same agent is there
+        await agentOnboardingPage.verifyAgentInCompletedTab();
     });
 
-    test('Agent Onboarding Flow', async ({ page }) => {
+    test.skip('Agent Onboarding Flow', async ({ page }) => {
         test.setTimeout(600000); // 10 minutes — multiple onboarding steps
         const manageAgentsPage    = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);

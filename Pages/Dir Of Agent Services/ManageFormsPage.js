@@ -34,8 +34,8 @@ class ManageFormsPage {
     }
 
     async openManageForms() {
-        await this.manageFormsTab.click();
-        await expect(this.manageFormsHeader).toBeVisible({ timeout: 10000 });
+        await this.page.goto('https://qa.procasaonboard.com/manageforms', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.manageFormsHeader).toBeVisible({ timeout: 15000 });
         await this.waitForLoader();
     }
 
@@ -91,6 +91,8 @@ class ManageFormsPage {
     }
 
     async openAdditionalform() {
+        await this.page.goto('https://qa.procasaonboard.com/manageforms', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.waitForLoader();
         await this.additionalform.click();
         await this.waitForLoader();
         await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
@@ -99,6 +101,8 @@ class ManageFormsPage {
     }
 
     async openTechSetUpform() {
+        await this.page.goto('https://qa.procasaonboard.com/manageforms', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.waitForLoader();
         await this.techSetUpform.click();
         await this.waitForLoader();
         await expect(this.addFormButton).toBeVisible({ timeout: 10000 });

@@ -7,8 +7,7 @@ exports.CalendarPage = class CalendarPage {
     }
 
     async navigateToCalendar() {
-        await this.menuLink.click();
-        await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+        await this.page.goto('https://qa.procasaonboard.com/calendar-invite', { waitUntil: 'domcontentloaded', timeout: 30000 });
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
         console.log(`>>> Calendar opened: ${this.page.url()}`);
     }

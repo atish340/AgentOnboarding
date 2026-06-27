@@ -18,8 +18,8 @@ exports.TrainingNvideosPage = class TrainingNvideosPage {
     }
 
     async navigateToTrainingNvideosPage() {
-        await this.teamLink.click();
-        await expect(this.pageTitle).toHaveText('Manage Videos');
+        await this.page.goto('https://qa.procasaonboard.com/trainings-videos', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.pageTitle).toHaveText('Manage Videos', { timeout: 15000 });
     }
     async addNewVideo({ category, title, link }) {
         await this.selectCategoryDropdown.selectOption({ label: category });
@@ -28,6 +28,12 @@ exports.TrainingNvideosPage = class TrainingNvideosPage {
         await this.videoLinkInput.fill(link);
         await this.requiredCheckbox.check();
         await this.saveButton.click();
+
+        // stay on training videos page — navigate back if the app redirected away
+        if (!this.page.url().includes('/trainings-videos')) {
+            await this.page.goto('https://qa.procasaonboard.com/trainings-videos', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        }
+        await this.page.waitForTimeout(1000);
     }
     async switchToAgentTab({ title, link }) {
         await this.switchToAgent.click();

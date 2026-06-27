@@ -12,8 +12,8 @@ exports.McStaffPage = class McStaffPage {
     }
 
     async navigateToMcStaff() {
-        await this.mcStaffLink.click();
-        await expect(this.pageTitle).toHaveText('MC Staff');
+        await this.page.goto('https://qa.procasaonboard.com/mcstaff', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await expect(this.pageTitle).toHaveText('MC Staff', { timeout: 15000 });
     }
 
     async searchStaff(name) {

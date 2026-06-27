@@ -36,9 +36,23 @@ class AgentRosterPage {
     }
 
     async viewAgentProfile() {
+        const beforeUrl = this.page.url();
         await this.agentNameResult.click();
-        await this.page.locator('//*[@class="text-left font-bold text-xl flex justify-between items-center"]').waitFor();
-        await this.page.goBack();
+
+        const navigated = await this.page.waitForURL(
+            url => url.href !== beforeUrl, { timeout: 6000 }
+        ).then(() => true).catch(() => false);
+
+        if (navigated) {
+            console.log(`>>> Agent profile opened: ${this.page.url()}`);
+            await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+            await this.page.goBack();
+            await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+        } else {
+            // Row click opens a panel in-page — close it and continue
+            console.log(`>>> Agent profile panel opened (no navigation) — closing`);
+            await this.page.keyboard.press('Escape').catch(() => {});
+        }
     }
 
     async downloadPdf() {

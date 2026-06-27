@@ -1,5 +1,4 @@
-const { test, expect } = require('@playwright/test');
-const { LoginPage } = require('../Pages/Login/Login');
+const { test: base, expect } = require('@playwright/test');
 const { MyProfilePage } = require('../Pages/Agent/myProfile');
 const { AgentRosterPage } = require('../Pages/Agent/agentRoster');
 const { DocumentPage } = require('../Pages/Agent/documentLibrary');
@@ -10,20 +9,37 @@ const { TeamsPage } = require('../Pages/Agent/Teams');
 
 const TestData = require('../TestData/agent.json');
 
+// Worker-scoped fixture: logs in ONCE per worker, reuses the same browser tab
+// so sessionStorage (Agent auth) is preserved across all tests.
+const test = base.extend({
+    sharedPage: [async ({ browser }, use) => {
+        const ctx = await browser.newContext();
+        const page = await ctx.newPage();
+
+        await page.goto('https://qa.procasaonboard.com/login');
+        await page.waitForSelector('input[name=email]', { state: 'visible', timeout: 15000 });
+        await page.fill('input[name=email]', TestData.login.username);
+        await page.fill('input[name=password]', TestData.login.password);
+        await page.waitForSelector('button[type=submit]:not([disabled])', { timeout: 15000 });
+        await page.click('button[type=submit]');
+        await page.waitForURL(url => !url.href.includes('/login'), { timeout: 30000 });
+        console.log(`✓ Agent logged in once — URL: ${page.url()}`);
+
+        await use(page);
+        await ctx.close();
+    }, { scope: 'worker' }],
+});
+
 test.describe('Agent', () => {
 
-    test.beforeEach(async ({ page }) => {
-        const loginPage = new LoginPage(page);
-        await loginPage.navigate();
-        await loginPage.enterEmail(TestData.login.username);
-        await loginPage.enterPassword(TestData.login.password);
-        await Promise.all([
-            page.waitForURL(/dashboard|home|profile/i),
-            loginPage.clickLoginButton(),
-        ]);
+    test.beforeEach(async ({ sharedPage: page }) => {
+        await page.goto('https://qa.procasaonboard.com/home', {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000
+        });
     });
 
-    test('agentMyProfile', async ({ page }) => {
+    test('agentMyProfile', async ({ sharedPage: page }) => {
         const myProfilePage = new MyProfilePage(page);
         await myProfilePage.navigateToMyProfile();
         await myProfilePage.verifyPageTitle();
@@ -34,7 +50,7 @@ test.describe('Agent', () => {
         await myProfilePage.saveChanges();
     });
 
-    test('agentRoster', async ({ page }) => {
+    test('agentRoster', async ({ sharedPage: page }) => {
         const agentRosterPage = new AgentRosterPage(page);
         await agentRosterPage.navigateToAgentRoster();
         await agentRosterPage.verifyPageTitle();
@@ -45,7 +61,7 @@ test.describe('Agent', () => {
         await agentRosterPage.viewAgentProfile();
     });
 
-    test('Agent Documentfolder', async ({ page }) => {
+    test('Agent Documentfolder', async ({ sharedPage: page }) => {
         const marketCenter = new DocumentPage(page);
         await marketCenter.openMarketCenter();
         await marketCenter.openMCFolderAndDownload();
@@ -56,21 +72,21 @@ test.describe('Agent', () => {
         await marketCenter.deleteFolder();
     });
 
-    test('Training Videos', async ({ page }) => {
+    test('Training Videos', async ({ sharedPage: page }) => {
         const trainingPage = new TrainingVideosPage(page);
         await trainingPage.navigateToTrainingVideos();
         await trainingPage.openVideoAndReturnToMainPage();
         await trainingPage.markVideoComplete();
     });
 
-    test('FAQ', async ({ page }) => {
+    test('FAQ', async ({ sharedPage: page }) => {
         const faqPage = new FaqPage(page);
         await faqPage.navigateToFaq();
         await faqPage.verifyFaqPageTitle();
         await faqPage.expandFaqReadAndClose();
     });
 
-    test('Home', async ({ page }) => {
+    test('Home', async ({ sharedPage: page }) => {
         const homeTasks = new HomeTasksPage(page);
         await homeTasks.navigateToHome();
         await homeTasks.openCompletedTasks();
@@ -79,7 +95,7 @@ test.describe('Agent', () => {
         await homeTasks.clickAllCheckboxesSequentially();
     });
 
-    test('teams', async ({ page }) => {
+    test('teams', async ({ sharedPage: page }) => {
         const teamsPage = new TeamsPage(page);
         await teamsPage.navigateToTeams();
         await teamsPage.expandFirstTab();

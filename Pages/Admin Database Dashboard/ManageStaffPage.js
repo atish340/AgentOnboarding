@@ -30,6 +30,7 @@ class ManageStaffPage {
     async openManageStaff() {
         await this.manageStaffLink.click();
         await expect(this.headingManageStaff).toBeVisible({ timeout: 10000 });
+        await this.waitForLoader();
     }
 
     async goToMCtab() {
@@ -37,18 +38,23 @@ class ManageStaffPage {
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async addEmployee(firstName, lastName, email) {
+        await this.waitForLoader();
         await this.addEmployeeBtn.click();
         await this.firstNameField.fill(firstName);
         await this.lastNameField.fill(lastName);
         await this.emailField.fill(email);
 
         await this.sendInviteButton.click();
-        await this.page.waitForTimeout(3000);
+        // Modal stays open after invite (form just resets) — navigate away to close it
+        await this.waitForLoader();
+        await this.page.goto('https://qa.procasaonboard.com/managestaff', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.waitForLoader();
 
         // Wait for the new employee row to appear in the "Employees Invited" table
         // const invitedTable = this.page.locator('h1:has-text("Employees Invited") + table');

@@ -26,8 +26,9 @@ class EmailNotificationPage {
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async openEmailNotificationTab() {
@@ -37,6 +38,7 @@ class EmailNotificationPage {
     }
 
     async addEmailTemplate(templateName, email, subject, body) {
+        await this.waitForLoader();
         await this.addTemplateButton.click();
         await expect(this.templateNameInput).toBeVisible({ timeout: 10000 });
         await this.templateNameInput.fill(templateName);
@@ -54,9 +56,12 @@ class EmailNotificationPage {
 
         await this.subjectInput.fill(subject);
         await this.bodyInput.fill(body);
-        await this.saveButton.click();
 
-        await expect(this.toastMessage).toBeVisible({ timeout: 20000 });
+        // Start listening BEFORE click so the toast is caught even if it dismisses fast
+        await Promise.all([
+            this.page.waitForSelector(':text("New email template created successfully")', { timeout: 20000 }),
+            this.saveButton.click()
+        ]);
     }
 
     async openInAppNotificationTab() {

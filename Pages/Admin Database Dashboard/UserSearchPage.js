@@ -19,13 +19,9 @@ class UserSearchPage {
     }
 
     async waitForLoader() {
-        // Wait for loader to appear (if it does) then disappear
-        try {
-            await this.loader.waitFor({ state: 'visible', timeout: 3000 });
-        } catch {
-            // loader may not appear at all — that's fine
-        }
-        await this.loader.waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.loader.first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.loader.first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async searchUser(name) {

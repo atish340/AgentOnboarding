@@ -56,5 +56,17 @@
     },
     "DocumentLibrary": {
         "folderName": "Auto Test MC folder"
-    }
+    },
+    "faqQA": [
+        { "q": "What documents are required to complete agent onboarding?", "a": "Agents must submit a government-issued ID, real estate license, E&O insurance certificate, and a signed independent contractor agreement before activation." },
+        { "q": "How long does the agent onboarding process typically take?", "a": "The standard onboarding process takes 3–5 business days, provided all required documents are submitted and verified without issues." },
+        { "q": "What is the process for setting up MLS access during onboarding?", "a": "MLS access is provisioned after your license is verified. You will receive an email with credentials within 48 hours of completing the document submission step." },
+        { "q": "How do I complete my profile after joining the brokerage?", "a": "Log in to the portal, navigate to My Profile, upload your headshot, fill in your bio, and enter your contact details. A complete profile improves client trust." },
+        { "q": "What training is mandatory for newly onboarded agents?", "a": "All new agents must complete the compliance orientation, fair housing training, and the CRM platform walkthrough within the first 14 days of onboarding." },
+        { "q": "How do I get my business cards and marketing materials after onboarding?", "a": "Once onboarding is approved, submit your design request through the Marketing Portal. Standard business cards are ready within 5 business days." },
+        { "q": "What commission structure applies during the probation period?", "a": "During the first 90 days, new agents are on a 70/30 split. After completing the probation review, you move to the standard plan outlined in your agreement." },
+        { "q": "How do I connect my e-signature account during onboarding?", "a": "Go to Settings > Integrations and link your DocuSign or DotLoop account. This is required before you can send contracts through the platform." },
+        { "q": "Who is my point of contact if I have questions during onboarding?", "a": "Your assigned onboarding coordinator is your primary contact. Their details are in the welcome email. You can also reach the support team via the Help Desk." },
+        { "q": "When will I receive my agent ID and portal login credentials?", "a": "Your agent ID and portal credentials are emailed within 24 hours of submitting your completed onboarding package and passing the background check." }
+    ]
 }

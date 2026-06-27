@@ -14,11 +14,13 @@ class ImportDataPage {
     }
 
     async waitForLoader() {
-        try { await this.loader.waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.loader.waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.loader.first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.loader.first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async openImportModal() {
+        await this.waitForLoader();
         await this.importButton.click();
         await expect(this.importAgentsHeading).toBeVisible({ timeout: 10000 });
         await this.waitForLoader();
@@ -27,11 +29,15 @@ class ImportDataPage {
     async selectMarketCenter(value) {
         await expect(this.marketCenterDropdown).toBeVisible({ timeout: 10000 });
         await this.marketCenterDropdown.selectOption({ label: value });
-        // Give the app time to finish loading forms for the selected MC
-        await this.page.waitForTimeout(8000);
+        // Wait for the MC forms loading indicator to appear then disappear
+        try { await this.loadingText.waitFor({ state: 'visible', timeout: 5000 }); } catch {}
+        await this.loadingText.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
+        // Also wait for any page-level spinner
+        await this.waitForLoader();
     }
 
     async uploadFile(filePath) {
+        await this.waitForLoader();
         const [fileChooser] = await Promise.all([
             this.page.waitForEvent('filechooser'),
             this.fileInput.click(),

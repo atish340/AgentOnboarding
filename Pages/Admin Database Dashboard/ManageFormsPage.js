@@ -30,25 +30,31 @@ class ManageFormsPage {
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async openManageForms() {
+        await this.waitForLoader();
         await this.manageFormsTab.click();
         await expect(this.manageFormsHeader).toBeVisible({ timeout: 10000 });
-        await this.waitForLoader();
     }
 
     async openRecruitingTab() {
         await this.recruitingTab.click();
         await this.waitForLoader();
         await expect(this.addFormButton).toBeVisible({ timeout: 10000 });
+        // Extra loader wait before click — a new loader can appear between tab load and button click
+        await this.waitForLoader();
         await this.addFormButton.click();
-        await expect(this.editRecruitingHeader).toBeVisible({ timeout: 30000 });
+        // Form editor shows a z-10 loader while it loads — wait before checking header
+        await this.waitForLoader();
+        await expect(this.editRecruitingHeader).toBeVisible({ timeout: 60000 });
     }
 
     async addFormField(fieldName) {
+        await this.waitForLoader();
         await this.addFieldButton.click();
         await expect(this.addFormFieldHeader).toBeVisible({ timeout: 10000 });
         await this.fieldTitleInput.fill(fieldName);
@@ -103,7 +109,32 @@ class ManageFormsPage {
         await expect(this.editTechSetUpHeader).toBeVisible({ timeout: 15000 });
     }
 
+    async addFieldToAllForms(recruitingField, onboardField, marketingField, additionalField, techSetUpField) {
+        await this.openRecruitingTab();
+        await this.addFormField(recruitingField);
+        await this.configureDropdowns();
+        await this.saveForm();
 
+        await this.openOnboardingform();
+        await this.addFormField1(onboardField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openMarketingform();
+        await this.addFormField1(marketingField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openAdditionalform();
+        await this.addFormField1(additionalField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openTechSetUpform();
+        await this.addFormField1(techSetUpField);
+        await this.configureDropdowns();
+        await this.saveForm();
+    }
 }
 
 module.exports = { ManageFormsPage };

@@ -109,6 +109,33 @@ class ManageFormsPage {
         await this.addFormButton.click();
         await expect(this.editTechSetUpHeader).toBeVisible({ timeout: 15000 });
     }
+
+    async addFieldToAllForms(recruitingField, onboardField, marketingField, additionalField, techSetUpField) {
+        await this.openRecruitingTab();
+        await this.addFormField(recruitingField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openOnboardingform();
+        await this.addFormField1(onboardField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openMarketingform();
+        await this.addFormField1(marketingField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openAdditionalform();
+        await this.addFormField1(additionalField);
+        await this.configureDropdowns();
+        await this.saveForm();
+
+        await this.openTechSetUpform();
+        await this.addFormField1(techSetUpField);
+        await this.configureDropdowns();
+        await this.saveForm();
+    }
 }
 
 module.exports = { ManageFormsPage };

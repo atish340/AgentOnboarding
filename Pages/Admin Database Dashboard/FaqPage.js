@@ -14,8 +14,9 @@ class FaqPage {
   }
 
   async waitForLoader() {
-    try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-    await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+    try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+    await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+    await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
   }
 
   async openFaqTab() {
@@ -25,6 +26,7 @@ class FaqPage {
   }
 
   async addFaq(title, content) {
+    await this.waitForLoader();
     await this.addFaqButton.click();
     await expect(this.titleInput).toBeVisible({ timeout: 10000 });
 

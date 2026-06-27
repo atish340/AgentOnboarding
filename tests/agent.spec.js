@@ -1,11 +1,13 @@
 const { test: base, expect } = require('@playwright/test');
-const { MyProfilePage } = require('../Pages/Agent/myProfile');
-const { AgentRosterPage } = require('../Pages/Agent/agentRoster');
-const { DocumentPage } = require('../Pages/Agent/documentLibrary');
-const { TrainingVideosPage } = require('../Pages/Agent/TrainingVideos');
-const { FaqPage } = require('../Pages/Agent/FAQ');
-const { HomeTasksPage } = require('../Pages/Agent/home');
-const { TeamsPage } = require('../Pages/Agent/Teams');
+const {
+    MyProfilePage,
+    AgentRosterPage,
+    DocumentPage,
+    TrainingVideosPage,
+    FaqPage,
+    HomeTasksPage,
+    TeamsPage,
+} = require('../Pages/Agent');
 
 const TestData = require('../TestData/agent.json');
 

@@ -20,14 +20,17 @@ class TopPerformersPage {
     async openTopPerformers() {
         await this.topPerformersTab.click();
         await expect(this.topPerformersHeader).toBeVisible({ timeout: 10000 });
+        await this.waitForLoader();
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async addPerformer() {
+        await this.waitForLoader();
         await this.addButton.click();
         await expect(this.addPopupHeader).toBeVisible({ timeout: 10000 });
         await this.waitForLoader();
@@ -48,15 +51,16 @@ class TopPerformersPage {
 
             selectedName = (await item.textContent())?.trim() || '';
             await item.click();
+            // Wait for any loader triggered by item selection before closing dropdown
+            await this.waitForLoader();
 
-            // Explicitly close the dropdown before checking save state
-            // Press Escape to dismiss; if dropdown still visible, click modal header
+            // Close the dropdown: Escape first, then top-left corner click as fallback
             await this.page.keyboard.press('Escape');
             try {
                 await dropdownItems.first().waitFor({ state: 'hidden', timeout: 2000 });
             } catch {
-                // Dropdown didn't close via Escape — click neutral modal area
-                await this.addPopupHeader.click();
+                // Dropdown didn't close via Escape — click safe area (top-left corner)
+                await this.page.mouse.click(10, 10);
                 await this.page.waitForTimeout(300);
             }
 

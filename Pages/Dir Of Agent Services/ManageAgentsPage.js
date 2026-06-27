@@ -66,6 +66,21 @@ exports.ManageAgentsPage = class ManageAgentsPage {
         return count;
     }
 
+    async getAllTabCounts() {
+        const tabs = [
+            { locator: this.tabInitiated,    name: 'Initiated' },
+            { locator: this.tabInProgress,   name: 'In Progress' },
+            { locator: this.tabCompleted,    name: 'Completed' },
+            { locator: this.tabCancelled,    name: 'Cancelled' },
+            { locator: this.tabDisabled,     name: 'Disabled' },
+            { locator: this.tab100Day,       name: '100-Day Checklist' },
+            { locator: this.tabPendingCreds, name: 'Pending Credentials' },
+        ];
+        for (const tab of tabs) {
+            await this.getAgentCountFromTab(tab.locator, tab.name);
+        }
+    }
+
     async clickTab(tabLocator, tabName) {
         await tabLocator.click();
         await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

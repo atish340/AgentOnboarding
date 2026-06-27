@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const TestData = require('../TestData/adminlogin.json');
-const { LoginPage } = require('../Pages/Login/Login');
+const { LoginPage } = require('../Pages/Login');
 
 test.describe('Login Page Tests', () => {
     test('should display correct login header', async ({ page }) => {
@@ -17,11 +17,7 @@ test.describe('Login Page Tests', () => {
         await loginPage.enterPassword(TestData.invalidUser.password);
         await loginPage.clickLoginButton();
         // Wait for navigation or response after login click
-        await page.waitForTimeout(1000); // Adjust timeout as needed
-        // Add assertion for error message or redirection
-        // const toaster = await page.locator('//*[@id="hrwy7ub"]/div[1]');
-        // console.log('Toaster message:', toaster);
-        // await expect(page.locator('//*[@id="hrwy7ub"]/div[1]')).toBeVisible();
+        await page.waitForTimeout(1000);
     });
 
     test('should allow navigation to forgot password', async ({ page }) => {

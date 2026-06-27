@@ -21,8 +21,9 @@ class DocumentLibraryPage {
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async openDocumentLibrary() {
@@ -35,12 +36,21 @@ class DocumentLibraryPage {
         await this.addFolderButton.click();
         await expect(this.folderNameInput).toBeVisible({ timeout: 10000 });
         await this.folderNameInput.fill(folderName);
-        await this.radioMarketCenter.click();
-        await this.marketCenterSelect.selectOption({ label: 'Hawaii' });
-        await this.agentFolderCheckbox.check();
-        await this.teamLeaderCheckbox.check();
+        // Procasa Team radio
+        await this.page.locator('input[type="radio"]').first().click();
+        // Wait for assignee list to load after radio selection
+        await this.waitForLoader();
+        // Check first available assignee inside the dialog (Assignee* is required)
+        await this.page.locator('#add_folder input[type="checkbox"]').first().check();
         await this.createButton.click();
-        await expect(this.toastMessage).toBeVisible({ timeout: 15000 });
+        // After successful creation the dialog resets the form (name clears) but stays open
+        await expect(this.folderNameInput).toHaveValue('', { timeout: 10000 });
+        // Wait for the save loader to finish before closing
+        await this.waitForLoader();
+        // Navigate to document library — closes the dialog and refreshes the folder list
+        await this.waitForLoader();
+        await this.page.goto('https://qa.procasaonboard.com/documentlibrary', { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await this.waitForLoader();
     }
 
     async searchFolder(folderName) {

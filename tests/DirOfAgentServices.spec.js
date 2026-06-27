@@ -20,25 +20,10 @@ function generateTaskTitle() {
     const topic = topics[Math.floor(Math.random() * topics.length)];
     return `${verb} ${topic} ${randomLetters(4)}`;
 }
-const { LoginPage } = require('../Pages/Login/Login');
-const { AddAgentPage } = require('../Pages/Dir Of Agent Services/AddAgentPage');
-const { ManageAgentsPage } = require('../Pages/Dir Of Agent Services/ManageAgentsPage');
-const { McStaffPage } = require('../Pages/Dir Of Agent Services/McStaffPage');
-const { TeamPage } = require('../Pages/Dir Of Agent Services/TeamPage');
-const { TagPage } = require('../Pages/Dir Of Agent Services/TagPage');
-const { ManageFormsPage } = require('../Pages/Dir Of Agent Services/ManageFormsPage');
-const { EmailNotificationPage } = require('../Pages/Dir Of Agent Services/EmailNotification Page');
-const { TrainingNvideosPage } = require('../Pages/Dir Of Agent Services/TrainingNvideosPage');
-const { DashboardPage } = require('../Pages/Dir Of Agent Services/DashboardPage');
-const { AgentRosterPage } = require('../Pages/Dir Of Agent Services/AgentRosterPage');
-const { BulkTaskPage } = require('../Pages/Dir Of Agent Services/BulkTaskPage');
-const { HundredDayChecklistPage } = require('../Pages/Dir Of Agent Services/HundredDayChecklistPage');
-const { DailySnapshotPage } = require('../Pages/Dir Of Agent Services/DailySnapshotPage');
-const { DatabaseDashboardPage } = require('../Pages/Dir Of Agent Services/DatabaseDashboardPage');
-const { DocumentLibraryPage } = require('../Pages/Dir Of Agent Services/DocumentLibraryPage');
-const { CalendarPage } = require('../Pages/Dir Of Agent Services/CalendarPage');
-const { ChecklistPage } = require('../Pages/Dir Of Agent Services/ChecklistPage');
-const { AgentOnboardingPage } = require('../Pages/Dir Of Agent Services/AgentOnboardingPage');
+const { LoginPage } = require('../Pages/Login');
+const {
+    AddAgentPage, ManageAgentsPage, McStaffPage, TeamPage, TagPage, ManageFormsPage, EmailNotificationPage, TrainingNvideosPage, DashboardPage, AgentRosterPage, BulkTaskPage, HundredDayChecklistPage, DailySnapshotPage, DatabaseDashboardPage, DocumentLibraryPage, CalendarPage, ChecklistPage, AgentOnboardingPage,
+} = require('../Pages/Dir Of Agent Services');
 
 const TestData = require('../TestData/DirAgentServices.json');
 
@@ -90,19 +75,13 @@ test.describe('DirectorofAgentServices', () => {
     test.skip('Manage Agents', async ({ sharedPage: page }) => {
         test.setTimeout(1800000); // 30 min — full onboarding flow can take long for agents with many steps
 
-        const manageAgentsPage    = new ManageAgentsPage(page);
+        const manageAgentsPage = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);
 
         // Step 1: Navigate and verify page title + all tabs with counts
         await manageAgentsPage.navigateToManageAgents();
         await manageAgentsPage.verifyPageAndTabs();
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabInitiated,    'Initiated');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabInProgress,   'In Progress');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabCompleted,    'Completed');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabCancelled,    'Cancelled');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabDisabled,     'Disabled');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tab100Day,       '100-Day Checklist');
-        await manageAgentsPage.getAgentCountFromTab(manageAgentsPage.tabPendingCreds, 'Pending Credentials');
+        await manageAgentsPage.getAllTabCounts();
 
         // Step 2: Search for first agent and verify
         const firstAgent = await manageAgentsPage.getFirstAgentName();
@@ -150,7 +129,7 @@ test.describe('DirectorofAgentServices', () => {
 
     test.skip('Agent Onboarding Flow', async ({ sharedPage: page }) => {
         test.setTimeout(600000); // 10 minutes — multiple onboarding steps
-        const manageAgentsPage    = new ManageAgentsPage(page);
+        const manageAgentsPage = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);
 
         // Navigate to Manage Agents, find fresh 0% agent and land on Onboarding Form step
@@ -215,26 +194,7 @@ test.describe('DirectorofAgentServices', () => {
         console.log(`>>> Form fields suffix: _${suffix}`);
 
         await manageForms.openManageForms();
-        await manageForms.openRecruitingTab();
-        await manageForms.addFormField(recruitingField);
-        await manageForms.configureDropdowns();
-        await manageForms.saveForm();
-        await manageForms.openOnboardingform();
-        await manageForms.addFormField1(onboardField);
-        await manageForms.configureDropdowns();
-        await manageForms.saveForm();
-        await manageForms.openMarketingform();
-        await manageForms.addFormField1(marketingField);
-        await manageForms.configureDropdowns();
-        await manageForms.saveForm();
-        await manageForms.openAdditionalform();
-        await manageForms.addFormField1(additionalField);
-        await manageForms.configureDropdowns();
-        await manageForms.saveForm();
-        await manageForms.openTechSetUpform();
-        await manageForms.addFormField1(techSetUpField);
-        await manageForms.configureDropdowns();
-        await manageForms.saveForm();
+        await manageForms.addFieldToAllForms(recruitingField, onboardField, marketingField, additionalField, techSetUpField);
     });
 
 

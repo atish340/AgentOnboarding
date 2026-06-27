@@ -27,9 +27,16 @@ class MarketCenterPage {
         this.finalSaveButton = page.locator('//button[@class="btn-primary-blue px-6 mt-4 w-28"]');
     }
 
+    async waitForLoader() {
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+    }
+
     async openMarketCenterTab() {
         await this.marketCenterTab.click();
         await expect(this.marketCenterHeader).toBeVisible({ timeout: 10000 });
+        await this.waitForLoader();
     }
 
     async searchMarketCenter(name) {
@@ -54,6 +61,7 @@ class MarketCenterPage {
     }
 
     async addMarketCenter(name, id) {
+        await this.waitForLoader();
         await this.addButton.click();
         await expect(this.addHeader).toBeVisible({ timeout: 10000 });
         await this.page.waitForTimeout(2000);
@@ -70,8 +78,7 @@ class MarketCenterPage {
 
     async selectRoles() {
         const page = this.page;
-        try { await page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        await this.waitForLoader();
         await page.getByText('Select Role').click();
         await page.getByText('Director of agent services', { exact: true }).click();
         await page.getByText('Team leader', { exact: true }).click();

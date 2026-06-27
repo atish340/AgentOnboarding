@@ -17,6 +17,7 @@ class SchedulerPage {
     }
 
     async openScheduler() {
+        await this.waitForLoader();
         await this.scheduleReportBtn.click();
         await expect(this.page.getByText('Schedule Report', { exact: true })).toBeVisible();
 
@@ -43,20 +44,25 @@ class SchedulerPage {
         }
 
         await this.page.locator('//*[@class="text-white bg-[#0000FE] font-medium rounded py-2.5 px-3 w-20 hover:bg-[#0056b3]"]').click();
+        // Apply triggers navigation to schedulereport — wait for it to complete
+        await this.page.waitForURL(/schedulereport/, { timeout: 30000 });
+        await this.waitForLoader();
     }
 
     async waitForLoader() {
-        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'visible', timeout: 3000 }); } catch {}
-        await this.page.locator('div.absolute.bg-white.bg-opacity-60').waitFor({ state: 'hidden', timeout: 60000 });
+        try { await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'visible', timeout: 3000 }); } catch {}
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60').first().waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
+        await this.page.locator('div.absolute.bg-white.bg-opacity-60.z-10').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {});
     }
 
     async goToEventNamePage() {
+        // Wait for any pending navigation / loader before entering the step loop
+        await this.page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+        await this.waitForLoader();
         // Check for actual input, not generic text that appears in earlier wizard steps
         for (let i = 0; i < 20; i++) {
             if (await this.eventNameField.isVisible()) break;
             await this.nextBtn.click();
-            // Wait for tab/step content to finish loading — resolves immediately on fast tabs,
-            // waits naturally on slow API-backed tabs; avoids the 3s try/catch loader overhead
             await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         }
         await expect(this.eventNameField).toBeVisible({ timeout: 30000 });

@@ -127,7 +127,7 @@ test.describe('DirectorofAgentServices', () => {
         await agentOnboardingPage.verifyAgentInCompletedTab();
     });
 
-    test.skip('Agent Onboarding Flow', async ({ sharedPage: page }) => {
+    test('Agent Onboarding Flow', async ({ sharedPage: page }) => {
         test.setTimeout(600000); // 10 minutes — multiple onboarding steps
         const manageAgentsPage = new ManageAgentsPage(page);
         const agentOnboardingPage = new AgentOnboardingPage(page);

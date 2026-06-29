@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test:das"   : "playwright test tests/DirOfAgentServices.spec.js --headed --workers=1",
+    "test:admin" : "playwright test tests/Admin.spec.js --headed --workers=1",
+    "test:agent" : "playwright test tests/agent.spec.js --headed --workers=1",
+    "test:login" : "playwright test tests/loginpage.spec.js --headed --workers=1",
+    "report"     : "node generate-report.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

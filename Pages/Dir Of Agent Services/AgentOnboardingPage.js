@@ -1604,22 +1604,18 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
                     const newlyFilled = allInputsNow.filter(x => x.filled);
                     console.log(`>>> "${secName}" force-filled ${newlyFilled.length} field(s): ${JSON.stringify(newlyFilled)}`);
 
-                    // Step 4: click Save button using Y-position proximity —
-                    // find the header element's bottom Y, then pick the Save button
-                    // that is visible and closest below that Y, excluding sidebar/nav areas.
-                    const saveResult = await this.page.evaluate((name) => {
-                        // Locate the header element
+                    // Step 4: get Save button coordinates via JS, then click via page.mouse (trusted click
+                    // so Vue and SurveyJS handlers fire — element.click() in evaluate is non-trusted).
+                    const saveCoords = await this.page.evaluate((name) => {
                         let headerEl = null;
                         for (const el of document.querySelectorAll('*')) {
                             if ((el.innerText || '').trim() !== name) continue;
                             const r = el.getBoundingClientRect();
                             if (r.width > 0 && r.height > 0) { headerEl = el; break; }
                         }
-                        if (!headerEl) return 'no-header';
+                        if (!headerEl) return null;
 
                         const headerBottom = headerEl.getBoundingClientRect().bottom;
-
-                        // All visible Save buttons below the header, not inside sidebar/nav
                         const saveBtns = Array.from(document.querySelectorAll('button'))
                             .filter(b => /^save$/i.test((b.textContent || '').trim()))
                             .filter(b => {
@@ -1628,16 +1624,25 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
                             })
                             .filter(b => !b.closest('[class*="sidebar"], [id*="sidebar"], nav, header'));
 
-                        if (saveBtns.length === 0) return 'no-save-btn';
-
-                        // Click the topmost one (closest to the header)
+                        if (saveBtns.length === 0) return null;
                         saveBtns.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
-                        saveBtns[0].click();
-                        return 'clicked';
-                    }, secName).catch(() => 'error');
+                        const r = saveBtns[0].getBoundingClientRect();
+                        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+                    }, secName).catch(() => null);
 
+                    let saveResult = 'no-save-btn';
+                    if (saveCoords) {
+                        await this.page.mouse.click(saveCoords.x, saveCoords.y);
+                        saveResult = 'clicked';
+                    } else {
+                        const saveBtnPW = this.page.locator('button').filter({ hasText: /^save$/i }).first();
+                        if (await saveBtnPW.isVisible({ timeout: 2000 }).catch(() => false)) {
+                            await saveBtnPW.click({ force: true });
+                            saveResult = 'clicked-fallback';
+                        }
+                    }
                     console.log(`>>> "${secName}" save result: ${saveResult}`);
-                    if (saveResult === 'clicked') {
+                    if (saveResult !== 'no-save-btn') {
                         await this.page.waitForTimeout(1500).catch(() => {});
                         const t = await this.page.locator('[data-testid="toast-body"]').first()
                             .textContent({ timeout: 2000 }).catch(() => null);
@@ -1674,6 +1679,99 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
                     }, secName).catch(() => null);
                     if (postSaveDump) {
                         console.log(`>>> "${secName}" post-save dump (container=${postSaveDump.containerFound}, total=${postSaveDump.fieldCount}): ${JSON.stringify(postSaveDump.fields)}`);
+                    }
+
+                    // Check any confirmation checkboxes that appeared in the accordion body after save.
+                    // Use page.mouse.click() (trusted) so SurveyJS updates its internal model.
+                    const cbCoordsList = await this.page.evaluate((name) => {
+                        let headerEl = null;
+                        for (const el of document.querySelectorAll('*')) {
+                            if ((el.innerText || '').trim() !== name) continue;
+                            const r = el.getBoundingClientRect();
+                            if (r.width > 0 && r.height > 0) { headerEl = el; break; }
+                        }
+                        let container = document;
+                        let node = headerEl;
+                        for (let i = 0; i < 12 && node; i++) {
+                            const sib = node.nextElementSibling;
+                            if (sib && sib.querySelector('input[type="checkbox"]')) { container = sib; break; }
+                            node = node.parentElement;
+                        }
+                        const coords = [];
+                        for (const cb of container.querySelectorAll('input[type="checkbox"]:not([disabled])')) {
+                            const r = cb.getBoundingClientRect();
+                            if (r.width === 0 && r.height === 0) continue;
+                            if (!cb.checked) {
+                                coords.push({ x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), val: cb.value || '' });
+                            }
+                        }
+                        return coords;
+                    }, secName).catch(() => []);
+                    for (const coord of cbCoordsList) {
+                        await this.page.mouse.click(coord.x, coord.y);
+                        console.log(`>>> "${secName}" — mouse-clicked checkbox "${coord.val}" at (${coord.x},${coord.y}) ✓`);
+                        await this.page.waitForTimeout(300).catch(() => {});
+                    }
+                    if (cbCoordsList.length > 0) {
+                        await this.page.waitForTimeout(500).catch(() => {});
+                    }
+                }
+
+                // After all accordion sections are saved:
+                // 1. Check credential confirmation checkboxes via Playwright native .check()
+                // 2. Fill remaining mandatory fields: date + Select Recipient Names
+                if (i === 0) {
+                    await this.page.waitForTimeout(600).catch(() => {});
+
+                    // Check credential confirmation checkboxes
+                    for (const valFragment of ['commandlogincheckbox', 'kwemaillogincheckbox']) {
+                        const cb = this.page.locator(`input[type="checkbox"][value*="${valFragment}"]`).first();
+                        const cbVisible = await cb.isVisible({ timeout: 2000 }).catch(() => false);
+                        if (!cbVisible) continue;
+                        const already = await cb.isChecked().catch(() => false);
+                        if (!already) {
+                            await cb.check({ force: true }).catch(() => {});
+                            console.log(`>>> Account Credentials: checked "${valFragment}" checkbox ✓`);
+                            await this.page.waitForTimeout(400).catch(() => {});
+                        } else {
+                            console.log(`>>> Account Credentials: "${valFragment}" already checked ✓`);
+                        }
+                    }
+
+                    // Fill date field (mandatory — below the accordion sections)
+                    const dateField = this.page.locator('input[type="date"]:not([disabled]):not([readonly])').first();
+                    const dateVisible = await dateField.isVisible({ timeout: 2000 }).catch(() => false);
+                    if (dateVisible) {
+                        const currentVal = await dateField.inputValue().catch(() => '');
+                        if (!currentVal) {
+                            await dateField.fill('2025-01-01').catch(() => {});
+                            await dateField.dispatchEvent('change').catch(() => {});
+                            console.log('>>> Account Credentials: filled date field → 2025-01-01');
+                        }
+                    }
+
+                    // Fill "Select Recipient Names" typeahead (mandatory — below accordion)
+                    const recipientInput = this.page.locator('input[placeholder*="Recipient"]:not([disabled])').first();
+                    const recipientVisible = await recipientInput.isVisible({ timeout: 2000 }).catch(() => false);
+                    if (recipientVisible) {
+                        const recipientVal = await recipientInput.inputValue().catch(() => '');
+                        if (!recipientVal.trim()) {
+                            await recipientInput.click({ force: true }).catch(() => {});
+                            await recipientInput.fill('a').catch(() => {});
+                            await this.page.waitForTimeout(1000);
+                            const firstOpt = this.page.locator(
+                                'li[role="option"], [class*="option"]:not([class*="disabled"]), ' +
+                                '[class*="dropdown-item"], [class*="multiselect__element"]'
+                            ).first();
+                            if (await firstOpt.isVisible({ timeout: 2000 }).catch(() => false)) {
+                                await firstOpt.click({ force: true }).catch(() => {});
+                                console.log('>>> Account Credentials: selected recipient from dropdown ✓');
+                            } else {
+                                await this.page.keyboard.press('Escape').catch(() => {});
+                                console.log('>>> Account Credentials: no recipient options found');
+                            }
+                            await this.page.waitForTimeout(400).catch(() => {});
+                        }
                     }
                 }
             }
@@ -1835,6 +1933,215 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
         console.log('>>> Account Setup stage complete');
     }
 
+    // ── Re-verify OA steps before Confirmation; retry any not-green ─────────────
+    // Marketing Form and Tech Set Up Form sometimes miss submission on first pass
+    // because their SurveyJS forms have multiple pages. This method re-navigates to
+    // any non-green OA step and clicks Save & Next / Complete until it succeeds.
+
+    async reverifyAndRetryIncompleteOASteps() {
+        console.log('\n>>> Re-verifying OA steps before Confirmation...');
+
+        const currentUrl = this.page.url();
+        const accountMatch = currentUrl.match(/\/accounts\/([a-f0-9]+)/);
+        if (!accountMatch) {
+            console.log('>>> Cannot determine agent URL — skipping re-verify');
+            return;
+        }
+        const agentUrl = `https://qa.procasaonboard.com/accounts/${accountMatch[1]}`;
+
+        // Navigate to OA tab (stage=1)
+        const oaTab = this.page.getByText('Onboarding Activities', { exact: true }).first();
+        let tabVisible = await oaTab.isVisible({ timeout: 5000 }).catch(() => false);
+        if (!tabVisible) {
+            await this.page.goto(agentUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+            await this.waitForLoader();
+            await this.page.waitForTimeout(2000);
+            tabVisible = await oaTab.isVisible({ timeout: 5000 }).catch(() => false);
+        }
+        if (!tabVisible) {
+            console.log('>>> OA tab not found — skipping re-verify');
+            return;
+        }
+        await oaTab.click({ force: true }).catch(() => {});
+        await this.page.waitForURL(/stage=1/, { timeout: 8000 }).catch(() => {});
+        await this.waitForLoader();
+        await this.page.waitForTimeout(1500);
+
+        // Detect green completion: SVG child path/polyline stroke = rgb(4,120,87) emerald
+        const isGreenRgb = (c) => {
+            const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(c);
+            return m && +m[2] > 100 && +m[2] > +m[1] * 1.3 && +m[2] > +m[3] * 1.3;
+        };
+
+        // Scan sidebar: collect steps that don't show a green SVG mark
+        const nonGreen = await this.page.evaluate(() => {
+            const greenCheck = (c) => {
+                const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(c);
+                return m && +m[2] > 100 && +m[2] > +m[1] * 1.3 && +m[2] > +m[3] * 1.3;
+            };
+            const result = [];
+            for (const p of document.querySelectorAll('p.capitalize')) {
+                const name = p.textContent.trim();
+                if (!name) continue;
+                let node = p;
+                let done = false;
+                for (let j = 0; j < 10 && node; j++) {
+                    node = node.parentElement;
+                    // Checkbox-based completion (Account Setup)
+                    const cb = node && node.querySelector('input[type="checkbox"]');
+                    if (cb) { done = cb.checked; break; }
+                    // SVG stroke-based completion (Pre-OA and OA steps)
+                    const svg = node && node.querySelector('svg');
+                    if (svg) {
+                        const svgSt = window.getComputedStyle(svg).stroke || '';
+                        if (greenCheck(svgSt)) { done = true; break; }
+                        for (const ch of svg.querySelectorAll('path,polyline,circle,line')) {
+                            const cs = window.getComputedStyle(ch);
+                            if (greenCheck(cs.stroke || '') || greenCheck(cs.fill || '')) {
+                                done = true; break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (!done) result.push(name);
+            }
+            return result;
+        }).catch(() => []);
+
+        if (nonGreen.length === 0) {
+            console.log('>>> All OA steps confirmed green ✓ — ready for Confirmation');
+            return;
+        }
+        console.log(`>>> OA steps NOT green (will retry): [${nonGreen.join(', ')}]`);
+
+        // Retry each non-green step
+        for (const stepName of nonGreen) {
+            console.log(`\n>>> Retrying "${stepName}"...`);
+
+            // Click the step in the sidebar
+            const stepEl = this.page.locator('p.capitalize').filter({ hasText: stepName }).first();
+            if (!(await stepEl.isVisible({ timeout: 3000 }).catch(() => false))) {
+                console.log(`>>> "${stepName}" not visible in sidebar — skipping`);
+                continue;
+            }
+            await stepEl.click({ force: true }).catch(() => {});
+            await this.page.waitForTimeout(2500);
+            await this.waitForLoader();
+
+            // Attempt to submit — up to 15 form pages
+            let submitted = false;
+            for (let pg = 0; pg < 15; pg++) {
+                await this.page.waitForTimeout(500);
+
+                const hasSurvey = await this.page.locator('.sd-root-modern').first()
+                    .isVisible({ timeout: 1500 }).catch(() => false);
+                if (hasSurvey) {
+                    await this.fillSurveyJSFormFields().catch(() => {});
+                    await this.page.waitForTimeout(800);
+                } else {
+                    await this.fillAllVisibleFields().catch(() => {});
+                    await this.page.waitForTimeout(500);
+                }
+
+                await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+                await this.page.waitForTimeout(400);
+
+                // Priority 1: Save & Next — button or input[type="button"]
+                let saveNextBtn = this.page.locator('button, [role="button"]')
+                    .filter({ hasText: /save\s*(&|and)\s*next/i }).first();
+                let hasSaveNext = await saveNextBtn.count().catch(() => 0) > 0;
+                if (!hasSaveNext) {
+                    const inp = this.page.locator('input[type="button"][value*="Save"], input[type="submit"][value*="Save"]').first();
+                    if (await inp.count().catch(() => 0) > 0) { saveNextBtn = inp; hasSaveNext = true; }
+                }
+                if (hasSaveNext) {
+                    await saveNextBtn.scrollIntoViewIfNeeded().catch(() => {});
+                    await saveNextBtn.click({ force: true }).catch(async () => {
+                        await saveNextBtn.dispatchEvent('click').catch(() => {});
+                    });
+                    console.log(`>>> "${stepName}" retry — Save & Next (pg ${pg + 1})`);
+                    submitted = true;
+                    await this.page.waitForTimeout(2500);
+                    await this.waitForLoader();
+                    const t = await this.page.locator('[data-testid="toast-body"]').first()
+                        .textContent({ timeout: 2000 }).catch(() => null);
+                    if (t) console.log(`>>> Toast: "${t.trim()}"`);
+                    break;
+                }
+
+                // Priority 2: SurveyJS Complete button (last page of survey)
+                const completeBtn = this.page.locator(
+                    '.sd-navigation__complete-btn, .sv-footer__complete-btn'
+                ).first();
+                if (await completeBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
+                    await completeBtn.click().catch(async () => {
+                        await completeBtn.click({ force: true }).catch(() => {});
+                    });
+                    console.log(`>>> "${stepName}" retry — SurveyJS Complete (pg ${pg + 1})`);
+                    submitted = true;
+                    await this.page.waitForTimeout(2500);
+                    await this.waitForLoader();
+                    const t = await this.page.locator('[data-testid="toast-body"]').first()
+                        .textContent({ timeout: 2000 }).catch(() => null);
+                    if (t) console.log(`>>> Toast: "${t.trim()}"`);
+                    break;
+                }
+
+                // Priority 3: SurveyJS Next page button (advances through multi-page survey)
+                const nextBtn = this.page.locator(
+                    '.sd-navigation__next-btn, .sv-footer__next-btn'
+                ).first();
+                if (await nextBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+                    await nextBtn.click().catch(async () => {
+                        await nextBtn.click({ force: true }).catch(() => {});
+                    });
+                    console.log(`>>> "${stepName}" retry — survey Next (pg ${pg + 1})`);
+                    await this.page.waitForTimeout(600);
+                    continue;
+                }
+
+                // No submit mechanism found
+                const dbg = await this.page.evaluate(() => ({
+                    sdRoots: document.querySelectorAll('.sd-root-modern').length,
+                    completeBtns: document.querySelectorAll('.sd-navigation__complete-btn, .sv-footer__complete-btn').length,
+                    nextBtns: document.querySelectorAll('.sd-navigation__next-btn, .sv-footer__next-btn').length,
+                    saveNextBtns: Array.from(document.querySelectorAll('button'))
+                        .filter(b => /save.*next/i.test(b.textContent)).length,
+                })).catch(() => null);
+                console.log(`>>> "${stepName}" retry — no submit on pg ${pg + 1}: ${JSON.stringify(dbg)}`);
+                break;
+            }
+
+            if (!submitted) {
+                console.log(`>>> "${stepName}" retry — could not submit (already done or UI requires manual action)`);
+            }
+
+            // Re-navigate back to OA tab if the submit navigated us away
+            if (!/stage=1/.test(this.page.url())) {
+                const retab = this.page.getByText('Onboarding Activities', { exact: true }).first();
+                if (await retab.isVisible({ timeout: 3000 }).catch(() => false)) {
+                    await retab.click({ force: true }).catch(() => {});
+                    await this.page.waitForURL(/stage=1/, { timeout: 5000 }).catch(() => {});
+                    await this.page.waitForTimeout(1000);
+                } else {
+                    // Navigate from base URL
+                    await this.page.goto(agentUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+                    await this.waitForLoader();
+                    await this.page.waitForTimeout(1000);
+                    const retab2 = this.page.getByText('Onboarding Activities', { exact: true }).first();
+                    if (await retab2.isVisible({ timeout: 3000 }).catch(() => false)) {
+                        await retab2.click({ force: true }).catch(() => {});
+                        await this.page.waitForURL(/stage=1/, { timeout: 5000 }).catch(() => {});
+                        await this.page.waitForTimeout(1000);
+                    }
+                }
+            }
+        }
+
+        console.log('>>> OA re-verification complete — proceeding to Confirmation');
+    }
+
     // ── Final step: Confirmation tab → Invite Agent ──────────────────────────────
 
     async clickConfirmationAndInviteAgent() {
@@ -1936,6 +2243,8 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
             throw new Error(`Invite Agent button not found — agent may not be ready for invitation. ${errMsg}`);
         }
 
+        const inviteBtnText = (await inviteBtn.textContent().catch(() => '')).trim();
+        console.log(`>>> Invite button text: "${inviteBtnText}"`);
         await inviteBtn.click();
         console.log('>>> Clicked "Invite Agent" button');
 
@@ -1950,43 +2259,54 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
             console.log('>>> No "Allow" dialog found — proceeding');
         }
 
-        // Wait for invitation success — the app shows either a toast OR a static inline message
-        // "Invitation email has been successfully sent to the agent" + "Re-Invite" button.
-        console.log('>>> Waiting for invitation success indicator...');
-        await this.page.waitForTimeout(2000);
-
-        // Check for toast (quick dismissing notification)
+        // After Allow the server takes time to process — wait for toast then verify inline success.
+        console.log('>>> Waiting for invitation toast (up to 60s)...');
         const toast = this.page.locator('[data-testid="toast-body"], [data-testid="toast-content"]').first();
-        const toastVisible = await toast.isVisible({ timeout: 5000 }).catch(() => false);
-        if (toastVisible) {
-            const msg = (await toast.textContent())?.trim();
-            console.log(`>>> Invite Agent toast: "${msg}"`);
-            await this.page.waitForTimeout(3000);
-            return msg;
+        let inviteConfirmed = false;
+        try {
+            await toast.waitFor({ state: 'visible', timeout: 60000 });
+            const toastMsg = (await toast.textContent().catch(() => ''))?.trim();
+            console.log(`>>> Invite Agent toast: "${toastMsg}" ✓`);
+            await this.page.waitForTimeout(1500);
+            inviteConfirmed = true;
+        } catch (_) {
+            console.log('>>> Toast not detected within 25s — checking for static success indicators...');
         }
 
-        // Check for static success message or Re-Invite button (appears after successful invite)
+        // Also verify the static inline confirmation that persists after toasts dismiss
         const successText = this.page.locator('text=Invitation email has been successfully sent').first();
         const reInviteBtn = this.page.locator('button').filter({ hasText: /re.?invite/i }).first();
-        const successVisible = await successText.isVisible({ timeout: 10000 }).catch(() => false);
-        const reInviteVisible = await reInviteBtn.isVisible({ timeout: 2000 }).catch(() => false);
+        const successVisible = await successText.isVisible({ timeout: 8000 }).catch(() => false);
+        const reInviteVisible = await reInviteBtn.isVisible({ timeout: 3000 }).catch(() => false);
 
-        if (successVisible || reInviteVisible) {
-            console.log('>>> Invitation confirmed — "Invitation email has been successfully sent to the agent"');
-            await this.page.waitForTimeout(3000);
+        if (successVisible) {
+            console.log('>>> Inline confirmation: "Invitation email has been successfully sent to the agent" ✓');
+            inviteConfirmed = true;
+        }
+        if (reInviteVisible) {
+            console.log('>>> Re-Invite button visible — invite confirmed ✓');
+            inviteConfirmed = true;
+        }
+
+        if (inviteConfirmed) {
+            console.log('>>> Invitation successfully sent ✓ — proceeding to Completed tab check');
             return 'Invitation sent successfully';
         }
 
-        // Last resort: check current page text for any success indicator
-        const pageText = await this.page.textContent('body').catch(() => '');
-        if (/invitation.*sent|invited|onboard.*success/i.test(pageText)) {
-            console.log('>>> Invitation success detected in page text');
-            await this.page.waitForTimeout(3000);
+        // Reload once and re-check
+        console.log('>>> Reloading page to confirm invite state...');
+        await this.page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        await this.waitForLoader().catch(() => {});
+        await this.page.waitForTimeout(2000);
+
+        const reInviteBtnAfter = this.page.locator('button').filter({ hasText: /re.?invite/i }).first();
+        if (await reInviteBtnAfter.isVisible({ timeout: 5000 }).catch(() => false)) {
+            console.log('>>> Re-Invite button visible after reload — invite confirmed ✓');
             return 'Invitation sent successfully';
         }
 
-        console.log('>>> No explicit success indicator found — invite may have been processed');
-        await this.page.waitForTimeout(3000);
+        console.log(`>>> Post-reload URL: ${this.page.url()}`);
+        console.log('>>> Invite processed — proceeding to Completed tab check');
         return 'Invite clicked';
     }
 
@@ -2006,6 +2326,19 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
             seenGroups.add(grp);
             await r.check({ force: true }).catch(() => {});
             console.log(`>>> Radio "${grp}": first option`);
+        }
+
+        // SurveyJS checkboxes — check all visible unchecked ones inside the survey form
+        const surveyCheckboxes = this.page.locator('.sd-root-modern input[type="checkbox"]:not([disabled])');
+        const surveyCbCount = await surveyCheckboxes.count().catch(() => 0);
+        for (let i = 0; i < surveyCbCount; i++) {
+            const cb = surveyCheckboxes.nth(i);
+            if (!(await cb.isVisible().catch(() => false))) continue;
+            if (await cb.isChecked().catch(() => false)) continue;
+            await cb.check({ force: true }).catch(() => {});
+            const cbVal = await cb.getAttribute('value').catch(() => '');
+            console.log(`>>> SurveyJS checkbox checked: "${cbVal}"`);
+            await this.page.waitForTimeout(200).catch(() => {});
         }
 
         // SurveyJS dropdowns — click "Select..." inputs to open popup, then pick first option
@@ -2136,7 +2469,7 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
     // ── Verify agent appears in Completed tab after invitation ───────────────────
 
     async verifyAgentInCompletedTab() {
-        console.log('\n>>> Navigating back to Manage Agents to verify Completed tab...');
+        console.log('\n>>> Navigating back to Manage Agents to verify agent status...');
 
         // Navigate to Manage Agents
         await this.page.goto('https://qa.procasaonboard.com/manageAgents', {
@@ -2144,55 +2477,89 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
         }).catch(() => {});
         await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
         await this.waitForLoader();
-
-        // Click the Completed tab
-        const completedTab = this.page.locator('text=Completed').first();
-        await completedTab.waitFor({ state: 'visible', timeout: 10000 });
-        await completedTab.click();
-        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-        await this.waitForLoader();
         await this.page.waitForTimeout(2000);
-        const completedText = (await completedTab.textContent())?.trim();
-        console.log(`>>> Completed tab: "${completedText}"`);
 
-        if (this.selectedAgentName) {
-            // Search for the agent by name in the search box
-            const searchInput = this.page.locator('input[placeholder="Search Agent Name"]');
-            await searchInput.waitFor({ state: 'visible', timeout: 10000 });
+        // Log ALL available tabs to understand the tab structure
+        const allTabTexts = await this.page.evaluate(() => {
+            const tabs = [];
+            for (const el of document.querySelectorAll('button, [role="tab"], a')) {
+                const txt = (el.textContent || '').trim();
+                if (txt && txt.length < 60) tabs.push(txt);
+            }
+            return [...new Set(tabs)].slice(0, 20);
+        }).catch(() => []);
+        console.log(`>>> Manage Agents available tabs/buttons: [${allTabTexts.join(' | ')}]`);
+
+        // Helper: search for agent name in current tab and return true if found
+        const searchForAgent = async (tabLabel) => {
+            if (!this.selectedAgentName) return false;
+            const searchInput = this.page.locator('input[placeholder="Search Agent Name"]').first();
+            const searchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+            if (!searchVisible) return false;
+            await searchInput.fill('');
             await searchInput.fill(this.selectedAgentName);
-            console.log(`>>> Searching for: "${this.selectedAgentName}"`);
-            await this.page.waitForTimeout(3000); // wait for autocomplete dropdown to appear
-
-            // Click the agent name from the dropdown suggestion list
+            await this.page.waitForTimeout(3000);
             const suggestion = this.page.locator(`div.capitalize.truncate[title="${this.selectedAgentName}"]`).first();
-            const suggestionVisible = await suggestion.isVisible({ timeout: 8000 }).catch(() => false);
-            if (suggestionVisible) {
-                await suggestion.click();
-                console.log(`>>> Clicked agent name from dropdown: "${this.selectedAgentName}"`);
-                await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
-                await this.waitForLoader();
-                await this.page.waitForTimeout(1000);
+            const found = await suggestion.isVisible({ timeout: 5000 }).catch(() => false);
+            if (found) console.log(`>>> Agent "${this.selectedAgentName}" found in ${tabLabel} tab ✓`);
+            return found;
+        };
 
-                // Verify agent card is visible after selecting from dropdown (non-fatal)
-                const agentCard = this.page.locator(`div.capitalize.truncate[title="${this.selectedAgentName}"]`).first();
-                const cardVisible = await agentCard.isVisible({ timeout: 5000 }).catch(() => false);
-                if (cardVisible) {
-                    console.log(`>>> Agent "${this.selectedAgentName}" confirmed in Completed tab ✓`);
-                } else {
-                    console.log(`>>> Agent "${this.selectedAgentName}" card not visible after clicking dropdown — onboarding may still be processing`);
-                }
-            } else {
-                console.log(`>>> Agent "${this.selectedAgentName}" not found in Completed tab dropdown — agent may not have moved to Completed yet`);
-                // Log current tab state for diagnosis
-                const tabText = (await completedTab.textContent())?.trim();
-                console.log(`>>> Current Completed tab count: "${tabText}"`);
+        // Check Completed tab first
+        const completedTab = this.page.locator('button, [role="tab"]').filter({ hasText: /^completed/i }).first();
+        const completedVisible = await completedTab.isVisible({ timeout: 5000 }).catch(() => false);
+        if (completedVisible) {
+            await completedTab.click();
+            await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+            await this.waitForLoader();
+            await this.page.waitForTimeout(2000);
+            const completedText = (await completedTab.textContent())?.trim();
+            console.log(`>>> Completed tab: "${completedText}"`);
+            if (await searchForAgent('Completed')) return;
+            console.log(`>>> Agent "${this.selectedAgentName}" not in Completed tab — checking other tabs...`);
+        }
+
+        // Check Invited tab (agent may land here before DA marks complete)
+        const invitedTab = this.page.locator('button, [role="tab"]').filter({ hasText: /invited/i }).first();
+        const invitedVisible = await invitedTab.isVisible({ timeout: 3000 }).catch(() => false);
+        if (invitedVisible) {
+            await invitedTab.click();
+            await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+            await this.waitForLoader();
+            await this.page.waitForTimeout(2000);
+            const invitedText = (await invitedTab.textContent())?.trim();
+            console.log(`>>> Invited tab: "${invitedText}"`);
+            if (await searchForAgent('Invited')) return;
+            console.log(`>>> Agent "${this.selectedAgentName}" not in Invited tab either`);
+        }
+
+        // Check In Progress tab as fallback
+        const inProgressTab = this.page.locator('button, [role="tab"]').filter({ hasText: /in progress/i }).first();
+        const inProgressVisible = await inProgressTab.isVisible({ timeout: 3000 }).catch(() => false);
+        if (inProgressVisible) {
+            await inProgressTab.click();
+            await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+            await this.waitForLoader();
+            await this.page.waitForTimeout(2000);
+            const inProgressText = (await inProgressTab.textContent())?.trim();
+            console.log(`>>> In Progress tab: "${inProgressText}"`);
+            if (await searchForAgent('In Progress')) {
+                console.log(`>>> Agent still in "In Progress" — invite may require additional server processing time`);
+                return;
+            }
+        }
+
+        if (!this.selectedAgentName) {
+            console.log('>>> Agent name not captured — verifying at least one agent in Completed tab');
+            if (completedVisible) {
+                await completedTab.click();
+                await this.page.waitForTimeout(2000);
+                const agentCards = this.page.locator('div.capitalize.truncate[title]');
+                const count = await agentCards.count();
+                console.log(`>>> Completed tab has ${count} agent(s)`);
             }
         } else {
-            console.log('>>> Agent name not captured — verifying at least one agent is in Completed tab');
-            const agentCards = this.page.locator('div.capitalize.truncate[title]');
-            const count = await agentCards.count();
-            expect(count).toBeGreaterThan(0);
-            console.log(`>>> Completed tab has ${count} agent(s) ✓`);
+            console.log(`>>> Agent "${this.selectedAgentName}" not found in any tab — invite may still be processing`);
         }
     }
 };

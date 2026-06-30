@@ -27,9 +27,7 @@ const {
 
 const TestData = require('../TestData/DirAgentServices.json');
 
-// Worker-scoped fixture: logs in ONCE per worker, reuses the same browser tab
-// for all tests so sessionStorage (where the app stores auth) is preserved.
-// Named 'sharedPage' to avoid Playwright's built-in 'page' scope restriction.
+
 const test = base.extend({
     sharedPage: [async ({ browser }, use) => {
         const ctx = await browser.newContext();
@@ -72,60 +70,60 @@ test.describe('DirectorofAgentServices', () => {
         const manageAgentsPage = new ManageAgentsPage(page);
         await manageAgentsPage.searchAndVerifyAgent_legacy(lastFirstName);
     });
-    test.skip('Manage Agents', async ({ sharedPage: page }) => {
-        test.setTimeout(1800000); // 30 min — full onboarding flow can take long for agents with many steps
+    // test.skip('Manage Agents', async ({ sharedPage: page }) => {
+    //     test.setTimeout(1800000); // 30 min — full onboarding flow can take long for agents with many steps
 
-        const manageAgentsPage = new ManageAgentsPage(page);
-        const agentOnboardingPage = new AgentOnboardingPage(page);
+    //     const manageAgentsPage = new ManageAgentsPage(page);
+    //     const agentOnboardingPage = new AgentOnboardingPage(page);
 
-        // Step 1: Navigate and verify page title + all tabs with counts
-        await manageAgentsPage.navigateToManageAgents();
-        await manageAgentsPage.verifyPageAndTabs();
-        await manageAgentsPage.getAllTabCounts();
+    //     // Step 1: Navigate and verify page title + all tabs with counts
+    //     await manageAgentsPage.navigateToManageAgents();
+    //     await manageAgentsPage.verifyPageAndTabs();
+    //     await manageAgentsPage.getAllTabCounts();
 
-        // Step 2: Search for first agent and verify
-        const firstAgent = await manageAgentsPage.getFirstAgentName();
-        if (firstAgent) {
-            await manageAgentsPage.searchAgent(firstAgent);
-            await manageAgentsPage.verifySearchResults(firstAgent);
-            await manageAgentsPage.clearSearch();
-        }
+    //     // Step 2: Search for first agent and verify
+    //     const firstAgent = await manageAgentsPage.getFirstAgentName();
+    //     if (firstAgent) {
+    //         await manageAgentsPage.searchAgent(firstAgent);
+    //         await manageAgentsPage.verifySearchResults(firstAgent);
+    //         await manageAgentsPage.clearSearch();
+    //     }
 
-        // Step 3: Find agent with 0% progress → click View Onboarding
-        await agentOnboardingPage.clickViewOnboardingForZeroAgent();
+    //     // Step 3: Find agent with 0% progress → click View Onboarding
+    //     await agentOnboardingPage.clickViewOnboardingForZeroAgent();
 
-        // Step 4: Verify 4 onboarding stages are visible
-        await agentOnboardingPage.verifyOnboardingStages();
+    //     // Step 4: Verify 4 onboarding stages are visible
+    //     await agentOnboardingPage.verifyOnboardingStages();
 
-        // Step 5: Select "Don't Send" → Send & Next → verify email sent toast
-        const emailSent = await agentOnboardingPage.selectDontSendAndProceed();
-        if (emailSent) {
-            await agentOnboardingPage.verifyEmailSentToast();
-            await agentOnboardingPage.clickOnboardingFormStep();
-        }
+    //     // Step 5: Select "Don't Send" → Send & Next → verify email sent toast
+    //     const emailSent = await agentOnboardingPage.selectDontSendAndProceed();
+    //     if (emailSent) {
+    //         await agentOnboardingPage.verifyEmailSentToast();
+    //         await agentOnboardingPage.clickOnboardingFormStep();
+    //     }
 
-        // Step 6: Fill Onboarding Form (all mandatory fields) → save
-        await agentOnboardingPage.clickFillOnboardingForm();
-        await agentOnboardingPage.fillMandatoryFields();
-        await agentOnboardingPage.saveOnboardingForm();
+    //     // Step 6: Fill Onboarding Form (all mandatory fields) → save
+    //     await agentOnboardingPage.clickFillOnboardingForm();
+    //     await agentOnboardingPage.fillMandatoryFields();
+    //     await agentOnboardingPage.saveOnboardingForm();
 
-        // Step 7: Process remaining Pre-Onboarding steps
-        // (includes Agent Documents Upload with sample PDF + all other activities)
-        await agentOnboardingPage.processRemainingPreOnboardingSteps();
+    //     // Step 7: Process remaining Pre-Onboarding steps
+    //     // (includes Agent Documents Upload with sample PDF + all other activities)
+    //     await agentOnboardingPage.processRemainingPreOnboardingSteps();
 
-        // Step 8: Process Onboarding Activities (stage=1)
-        // Command Profile (URL/Username/Password) + Marketing Form + Account Setup Checklist + Tech Set Up Form
-        await agentOnboardingPage.processOnboardingActivities();
+    //     // Step 8: Process Onboarding Activities (stage=1)
+    //     // Command Profile (URL/Username/Password) + Marketing Form + Account Setup Checklist + Tech Set Up Form
+    //     await agentOnboardingPage.processOnboardingActivities();
 
-        // Step 8b: Process Account Setup (stage=2)
-        await agentOnboardingPage.processAccountSetup();
+    //     // Step 8b: Process Account Setup (stage=2)
+    //     await agentOnboardingPage.processAccountSetup();
 
-        // Step 9: Go to Confirmation tab → Invite Agent → Allow → verify toast
-        await agentOnboardingPage.clickConfirmationAndInviteAgent();
+    //     // Step 9: Go to Confirmation tab → Invite Agent → Allow → verify toast
+    //     await agentOnboardingPage.clickConfirmationAndInviteAgent();
 
-        // Step 10: Go back to Manage Agents → Completed tab → verify same agent is there
-        await agentOnboardingPage.verifyAgentInCompletedTab();
-    });
+    //     // Step 10: Go back to Manage Agents → Completed tab → verify same agent is there
+    //     await agentOnboardingPage.verifyAgentInCompletedTab();
+    // });
 
     test('Agent Onboarding Flow', async ({ sharedPage: page }) => {
         test.setTimeout(600000); // 10 minutes — multiple onboarding steps
@@ -155,6 +153,22 @@ test.describe('DirectorofAgentServices', () => {
 
         // Process remaining Pre-Onboarding steps (Agent Documents Upload + custom activities)
         await agentOnboardingPage.processRemainingPreOnboardingSteps();
+
+        // Stage 2: Onboarding Activities (Command Profile, Marketing Form, etc.)
+        await agentOnboardingPage.processOnboardingActivities();
+
+        // Stage 3: Account Setup (Account Credentials accordion sections)
+        await agentOnboardingPage.processAccountSetup();
+
+        // Before Confirmation: re-verify all OA steps; retry Save & Next for any not-green
+        // (Marketing Form and Tech Set Up Form often miss submission on first pass)
+        await agentOnboardingPage.reverifyAndRetryIncompleteOASteps();
+
+        // Stage 4 (Confirmation): click Invite Agent → agent moves to Completed
+        await agentOnboardingPage.clickConfirmationAndInviteAgent();
+
+        // Verify agent appears in the Completed tab
+        await agentOnboardingPage.verifyAgentInCompletedTab();
     });
 
     test('Mc Staff', async ({ sharedPage: page }) => {

@@ -1,0 +1,96 @@
+{
+  "capturedAt": "2026-11-26T07:29:47.386Z",
+  "capturedAs": "avqbreaw@yopmail.com",
+  "login": {
+    "status": [
+      201
+    ],
+    "landedOn": "https://qa.procasaonboard.com/home"
+  },
+  "headerRole": "Avqbs Reaw Agent , Pune",
+  "sidebarLinks": [
+    "Home",
+    "My Profile",
+    "My Team",
+    "Agent Roster",
+    "Document Library",
+    "MC Folder",
+    "My Folder",
+    "Training & Videos",
+    "FAQ's"
+  ],
+  "homeTaskCards": [],
+  "homeDayRows": [],
+  "rosterAgents": [
+    "Mvma Ageizz",
+    "mvmaageizz@yopmail.com",
+    "123-456-7890",
+    "-",
+    "Odiu Ekzk",
+    "odiuekzk@yopmail.com",
+    "123-456-7890",
+    "-",
+    "Taius Dwrso",
+    "taiusdwrso@yopmail.com",
+    "793-374-5647",
+    "-"
+  ],
+  "teams": [
+    "Administration",
+    "My Team",
+    "Knowledge Base",
+    "MC Folder",
+    "My Folder",
+    "Avqbs Reaw",
+    "Agent , Pune",
+    "No records found",
+    "Avqbs Reaw",
+    "First Name*",
+    "Last Name*",
+    "Email ID*",
+    "Designation",
+    "Market center name",
+    "Save",
+    "Update Email Signature",
+    "Email Header*",
+    "Upload Logo",
+    "Please upload email logo.",
+    "Email Signature*",
+    "Heading ▼",
+    "0 / 1000 characters",
+    "|",
+    "0 words",
+    "Please enter email signature.",
+    "Save"
+  ],
+  "teamBadges": [],
+  "docLibraryTitle": "Market Center Folders",
+  "mcFolders": [
+    "Pune Doc Folder Nov 26, 2026"
+  ],
+  "mcFolderDocuments": [
+    {
+      "testid": "doclib-document-6b07db1b93a346695dc649a6",
+      "text": "Docus Nov 26, 2026 Edit Document Name* Save"
+    }
+  ],
+  "myFolders": [
+    "Self F"
+  ],
+  "trainingVideos": {
+    "videoTiles": 2,
+    "markCompleteButtons": 2
+  },
+  "faqCount": 2,
+  "profileDocumentIcon": 1,
+  "teamsPage": {
+    "total": 1,
+    "teams": [
+      {
+        "name": "Ammjxq",
+        "teamLeader": "Pune Director (punedirector.aob@yopmail.com)"
+      }
+    ]
+  },
+  "teamsCapturedAt": "2026-11-26T07:34:54.325Z"
+}

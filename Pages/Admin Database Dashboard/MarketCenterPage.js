@@ -34,7 +34,8 @@ class MarketCenterPage {
     }
 
     async openMarketCenterTab() {
-        await this.marketCenterTab.click();
+        // Navigate by URL — clicking the sidebar link while on the Add form just reopens a blank Add form
+        await this.page.goto('https://qa.procasaonboard.com/marketcenter', { waitUntil: 'domcontentloaded', timeout: 30000 });
         await expect(this.marketCenterHeader).toBeVisible({ timeout: 10000 });
         await this.waitForLoader();
     }
@@ -42,7 +43,8 @@ class MarketCenterPage {
     async searchMarketCenter(name) {
         await this.searchBox.fill(name);
         await this.page.keyboard.press('Enter');
-        await expect(this.page.getByText(name).first()).toBeVisible({ timeout: 15000 });
+        // Scope to the MC list — a page-wide getByText also matches hidden <option>s like "Pune Director"
+        await expect(this.searchResultCell.filter({ hasText: name }).first()).toBeVisible({ timeout: 15000 });
         // await this.openMc.click();
         // await this.googleSignInButton.click();
         // await this.page.waitForTimeout(5000); // Wait for 5 seconds to ensure the page loads completely
@@ -98,6 +100,9 @@ class MarketCenterPage {
     async saveMarketCenter() {
         await this.saveButton.click();
         await this.finalSaveButton.click();
+        // Save copies all playbooks into the new MC from the browser; the form clears once it finishes
+        await expect(this.mcNameInput).toHaveValue('', { timeout: 120000 });
+        await this.waitForLoader();
     }
 }
 

@@ -8,6 +8,25 @@ function randomLetters(len) {
     return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
+// Splits one CSV line into fields, handling quoted fields (which may contain commas or "" escapes)
+function parseCsvLine(line) {
+    const fields = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+            if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+            else if (ch === '"') inQuotes = false;
+            else current += ch;
+        } else if (ch === '"') inQuotes = true;
+        else if (ch === ',') { fields.push(current); current = ''; }
+        else current += ch;
+    }
+    fields.push(current);
+    return fields;
+}
+
 const { LoginPage } = require('../Pages/Login');
 const {
     DatabaseDashboard, UserSearchPage, SchedulerPage, ImportDataPage, ManageStaffPage, MarketCenterPage, ManageFormsPage, TopPerformersPage, FaqPage, EmailNotificationPage, DocumentLibraryPage,
@@ -93,21 +112,25 @@ test.describe('Admin Dashboard Tests', () => {
         const importDataPage = new ImportDataPage(page);
         const userSearch = new UserSearchPage(page);
 
-        const templatePath = path.resolve('tests/uploadfiles/AOB_Import_Agent_Template_TAG_Market_Center.csv');
+        const templatePath = path.resolve('tests/uploadfiles', TestData.ImportData.templateFile);
         const tempPath = path.resolve('tests/uploadfiles/temp_import.csv');
-        const marketCenterValue = 'TAG Market Center';
+        const marketCenterValue = TestData.ImportData.marketCenter;
 
         const firstName = randomLetters(Math.floor(Math.random() * 3) + 4);
         const lastName = randomLetters(Math.floor(Math.random() * 3) + 4);
         const email = `${firstName}${lastName}@yopmail.com`;
         console.log(`>>> Importing agent: "${firstName} ${lastName}" | email: ${email}`);
 
-        const lines = fs.readFileSync(templatePath, 'utf8').replace(/\r/g, '').split('\n');
-        const dataCols = lines[1].split(',');
+        // The downloaded template quotes every field, but the app's importer treats quotes literally
+        // (header "Agent's First Name" with quotes isn't recognised; empty "" fails email validation).
+        // Parse it properly and write it back unquoted; commas inside header text are dropped.
+        const lines = fs.readFileSync(templatePath, 'utf8').replace(/^﻿/, '').replace(/\r/g, '').split('\n');
+        const headerCols = parseCsvLine(lines[0]).map(h => h.replace(/,/g, ''));
+        const dataCols = parseCsvLine(lines[1]);
         dataCols[0] = firstName;
         dataCols[1] = lastName;
         dataCols[2] = email;
-        fs.writeFileSync(tempPath, lines[0] + '\n' + dataCols.join(',') + '\n', 'utf8');
+        fs.writeFileSync(tempPath, headerCols.join(',') + '\n' + dataCols.join(',') + '\n', 'utf8');
 
         await importDataPage.importAgents(tempPath, marketCenterValue);
 
@@ -178,8 +201,8 @@ test.describe('Admin Dashboard Tests', () => {
     test('Add Top Performer', async ({ sharedPage: page }) => {
         const topPerformersPage = new TopPerformersPage(page);
         await topPerformersPage.openTopPerformers();
-        await topPerformersPage.addPerformer();
-        await topPerformersPage.searchPerformer(TestData.TopPerformer.searchName);
+        const addedName = await topPerformersPage.addPerformer();
+        await topPerformersPage.searchPerformer(addedName || TestData.TopPerformer.searchName);
     });
 
     test('Add FAQ', async ({ sharedPage: page }) => {

@@ -1,6 +1,6 @@
 {
     "login": {
-        "username": "camerio@yopmail.com",
+        "username": "punedirector.aob@yopmail.com",
         "password": "Test@123"
     },
     "AgentDetails": {
@@ -11,7 +11,10 @@
     },
     "TeamDetails": {
         "teamName": "Automation Team ",
-        "teamLeader": "Khando Balal"
+        "teamLeader": "Pune Director"
+    },
+    "McStaff": {
+        "searchName": "Pune Director"
     },
     "EmailNotification": {
         "templateName": "Auto Test Template by Staff",

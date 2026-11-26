@@ -1,0 +1,138 @@
+{
+  "capturedAt": "2026-11-26T06:32:58.201Z",
+  "capturedAs": "atishj@valueaddsofttech.com",
+  "databaseDashboardAgents": [
+    {
+      "id": "AG0000000001",
+      "name": "Alex Peter",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000002",
+      "name": "Sandip Pande",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000003",
+      "name": "Ethan Grant",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000004",
+      "name": "Bruce Terry",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000005",
+      "name": "Grace Allen",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000006",
+      "name": "Emily Grant",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000007",
+      "name": "Aidan Clark",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000008",
+      "name": "Emily Jones",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000009",
+      "name": "Alice Meyer",
+      "marketCenter": "Mumbai"
+    },
+    {
+      "id": "AG0000000010",
+      "name": "Simon Brown",
+      "marketCenter": "Mumbai"
+    }
+  ],
+  "userSearchMarketCenterOptions": [
+    "All Market center",
+    "Cbqjf",
+    "Goa",
+    "Mumbai",
+    "Pune"
+  ],
+  "importMarketCenterOptions": [
+    "Select Market center",
+    "Cbqjf",
+    "Goa",
+    "Mumbai",
+    "Pune"
+  ],
+  "schedulerFilterOptions": {
+    "dateRange": [
+      "Select Time Period",
+      "All Time",
+      "This Week",
+      "This Month",
+      "This Year",
+      "Last Year",
+      "Last Month",
+      "Last Week",
+      "Custom Date"
+    ],
+    "marketCenter": [
+      "All Market center",
+      "Cbqjf",
+      "Goa",
+      "Mumbai",
+      "Pune"
+    ]
+  },
+  "marketCenters": [
+    "Cbqjf",
+    "Goa",
+    "Mumbai",
+    "Pune"
+  ],
+  "topPerformers": [],
+  "topPerformerCandidates": [
+    "Amar K",
+    "Gafur Karta",
+    "Jay P"
+  ],
+  "manageStaffMcTab": [
+    "Marketing Team Marketing Head Manager",
+    "Centralized Onboarding Marketing Head Manager",
+    "Technology Set Up Team Marketing Head Manager",
+    "General Manager Marketing Head Manager",
+    "Marketing Head marketingh@yopmail.com Accepted",
+    "No records found"
+  ],
+  "centralizedServicesMembers": {
+    "rows": [
+      "Marketing Team Marketing Head Manager",
+      "Centralized Onboarding Marketing Head Manager",
+      "Technology Set Up Team Marketing Head Manager",
+      "General Manager Marketing Head Manager",
+      "Marketing Head marketingh@yopmail.com Accepted",
+      "No records found"
+    ],
+    "manageMemberOptions": [],
+    "manageMemberDialog": ""
+  },
+  "topPerformerNote": "Add Members dropdown shows \"No members available\" — only Marketing Head is eligible and already a top performer",
+  "centralizedServicesNote": "Manage Employees modal shows \"No Members Available\" — only one accepted centralized employee (Marketing Head)",
+  "importTemplates": {
+    "note": "Import CSV template is per market center (Download Template in the Import dialog)",
+    "Pune": "tests/uploadfiles/AOB_Import_Agent_Template_Pune.csv",
+    "quotingNote": "App bug: Download Template quotes every field, but the importer treats quotes literally (header not recognised, empty \"\" fails email validation). Admin.spec.js parses the template and writes it unquoted."
+  },
+  "importedAgents": {
+    "note": "Imported agents appear under Database Dashboard → Imported Agents → <market center>, not in the main list right away"
+  },
+  "centralizedEmployeesAdded": [
+    "Marketing Head marketingh@yopmail.com Accepted",
+    "Jay P jp@yopmail.com Accepted",
+    "Amar K amark@yopmail.com Accepted"
+  ],
+  "topPerformerDropdownText": "Select Member Amar K Gafur Karta Jay P"
+}

@@ -32,8 +32,11 @@ exports.CalendarPage = class CalendarPage {
         const allSelects = this.page.locator('select');
         await allSelects.first().waitFor({ state: 'visible', timeout: 8000 });
 
-        // Agent — index 0
-        await allSelects.nth(0).selectOption({ index: 1 });
+        // Agent — index 0. Options load async and there's no placeholder option,
+        // so with a single agent the only valid choice is index 0
+        const agentOptions = allSelects.nth(0).locator('option');
+        await expect(agentOptions).not.toHaveCount(0, { timeout: 15000 });
+        await allSelects.nth(0).selectOption({ index: (await agentOptions.count()) > 1 ? 1 : 0 });
         const agentName = await allSelects.nth(0).evaluate(el => el.options[el.selectedIndex]?.text);
         console.log(`>>> Agent selected: "${agentName?.trim()}"`);
 

@@ -197,8 +197,12 @@ exports.ChecklistPage = class ChecklistPage {
         return msg;
     }
 
+    // Two "activitydays" selects: the activity's own day (under Duration) and Smart Activity's "Select Day".
+    // Smart Activity's options stay blank until the activity day is chosen, so set that one first.
     async selectActivityDay(dayLabel) {
-        await this.selectDay.selectOption({ label: dayLabel });
+        await this.selectDay.first().selectOption({ label: dayLabel });
+        await expect(this.selectDay.last().locator('option', { hasText: dayLabel })).toHaveCount(1, { timeout: 10000 });
+        await this.selectDay.last().selectOption({ label: dayLabel });
     }
 
     async selectResponsibleRole() {

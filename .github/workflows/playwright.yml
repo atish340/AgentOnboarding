@@ -13,11 +13,14 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+        # Pinned: on the newest Node LTS, Playwright 1.54's browser install hangs after the download reaches 100%
+        node-version: 22
     - name: Install dependencies
       run: npm ci
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      # Only chromium is used (see playwright.config.js); the timeout makes a hung install fail fast
+      timeout-minutes: 10
+      run: npx playwright install --with-deps chromium
     - name: Run Playwright tests
       # Only the maintained suites — dashboard.spec.js / example.spec.js are stale and fail to load
       run: npx playwright test tests/loginpage.spec.js tests/Admin.spec.js tests/DirOfAgentServices.spec.js tests/agent.spec.js

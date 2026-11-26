@@ -37,10 +37,12 @@ export default defineConfig({
     screenshot: 'on',
     navigationTimeout: 60000,
     actionTimeout: 30000,
-    headless: false,
+    // CI runners have no display, so run headless there
+    headless: !!process.env.CI,
     viewport: null,
     launchOptions: {
-      args: ['--start-maximized', '--force-device-scale-factor=0.70']
+      // --window-size gives headless runs (CI) a desktop-sized window; headed runs still maximize
+      args: ['--start-maximized', '--window-size=1920,1080', '--force-device-scale-factor=0.70']
     }
 
   },

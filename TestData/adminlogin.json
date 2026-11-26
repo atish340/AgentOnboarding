@@ -4,17 +4,21 @@
         "password": "Pass@123"
     },
     "validUser": {
-        "email": "atishj@mailinator.com",
+        "email": "atishj@valueaddsofttech.com",
         "password": "Test@123",
-        "fpemail": "test37@mailinator.com"
+        "fpemail": "punedirector.aob@yopmail.com"
     },
     "URL": {
         "url_1": "https://qa.procasaonboard.com/login",
         "url_2": "https://qa.procasaonboard.com/database-dashboard"
     },
     "searchUser": {
-        "name": "Nikhil Mumbaikar",
-        "marketCenter": "America"
+        "name": "Alex Peter",
+        "marketCenter": "Mumbai"
+    },
+    "ImportData": {
+        "marketCenter": "Pune",
+        "templateFile": "AOB_Import_Agent_Template_Pune.csv"
     },
     "Schedular": {
         "eventName": "Automation Test Event",

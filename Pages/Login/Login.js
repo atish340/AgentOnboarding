@@ -1,3 +1,5 @@
+const { expect } = require('@playwright/test');
+
 exports.LoginPage =
     class LoginPage {
         constructor(page) {
@@ -45,5 +47,19 @@ exports.LoginPage =
 
         async getLoginHeaderText() {
             return await this.page.textContent(this.loginHeader);
+        }
+
+        // Multi-role users land in their default role (e.g. Team Leader) — switch via avatar menu → "Switch role"
+        async switchRole(roleName) {
+            const headerRole = this.page.locator('.navbar');
+            await headerRole.waitFor({ state: 'visible', timeout: 30000 });
+            if ((await headerRole.innerText()).toLowerCase().includes(roleName.toLowerCase())) return;
+
+            await this.page.locator('label.avatar').click();
+            await this.page.locator('ul.dropdown-content li').filter({ hasText: 'Switch role' }).click();
+            await this.page.getByText('Please select a role').waitFor({ state: 'visible', timeout: 10000 });
+            await this.page.getByText(new RegExp(`^${roleName}\\(`, 'i')).first().click();
+            await expect(headerRole).toContainText(new RegExp(roleName, 'i'), { timeout: 15000 });
+            console.log(`✓ Switched role to "${roleName}"`);
         }
     }

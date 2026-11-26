@@ -37,7 +37,9 @@ exports.TrainingNvideosPage = class TrainingNvideosPage {
     }
     async switchToAgentTab({ title, link }) {
         await this.switchToAgent.click();
-        await this.selectAgent.selectOption({ label: 'Khando Balal' });
+        // Pick the first real agent (index 0 is the "Select Agent" placeholder) — avoids depending on one name
+        await expect(this.selectAgent.locator('option')).not.toHaveCount(1, { timeout: 15000 });
+        await this.selectAgent.selectOption({ index: 1 });
         await this.addVideoButton.click();
         await this.videoTitleInput.fill(title);
         await this.videoLinkInput.fill(link);

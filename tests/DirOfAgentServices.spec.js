@@ -22,7 +22,7 @@ function generateTaskTitle() {
 }
 const { LoginPage } = require('../Pages/Login');
 const {
-    AddAgentPage, ManageAgentsPage, McStaffPage, TeamPage, TagPage, ManageFormsPage, EmailNotificationPage, TrainingNvideosPage, DashboardPage, AgentRosterPage, BulkTaskPage, HundredDayChecklistPage, DailySnapshotPage, DatabaseDashboardPage, DocumentLibraryPage, CalendarPage, ChecklistPage, AgentOnboardingPage,
+    AddAgentPage, ManageAgentsPage, McStaffPage, TeamPage, TagPage, ManageFormsPage, EmailNotificationPage, TrainingNvideosPage, DashboardPage, AgentRosterPage, BulkTaskPage, HundredDayChecklistPage, DailySnapshotPage, DatabaseDashboardPage, DocumentLibraryPage, CalendarPage, ChecklistPage, AgentOnboardingPage, SigningTemplatesPage,
 } = require('../Pages/Dir Of Agent Services');
 
 const TestData = require('../TestData/DirAgentServices.json');
@@ -40,6 +40,7 @@ const test = base.extend({
         await page.waitForSelector('button[type=submit]:not([disabled])', { timeout: 15000 });
         await page.click('button[type=submit]');
         await page.waitForURL(url => !url.href.includes('/login'), { timeout: 30000 });
+        await new LoginPage(page).switchRole('Director of Agent Services');
         console.log('✓ Logged in once — sharing this tab for all tests');
 
         await use(page);
@@ -174,7 +175,7 @@ test.describe('DirectorofAgentServices', () => {
     test('Mc Staff', async ({ sharedPage: page }) => {
         const mcStaffPage = new McStaffPage(page);
         await mcStaffPage.navigateToMcStaff();
-        await mcStaffPage.searchStaff('Cargo Mik');
+        await mcStaffPage.searchStaff(TestData.McStaff.searchName);
 
 
     });
@@ -398,6 +399,42 @@ test.describe('DirectorofAgentServices', () => {
         // 100-Days Tag
         await checklist.navigateTo100DayTag();
         await checklist.create100DayTagActivity();
+    });
+
+    test('E-Sign Signing Templates Flow', async ({ sharedPage: page }) => {
+        test.setTimeout(180000); // uploading a multi-MB PDF + Procasa template creation can take a while
+        const signingTemplatesPage = new SigningTemplatesPage(page);
+
+        // Open "Signing Templates" menu → Provider Settings → ensure Procasa is selected
+        await signingTemplatesPage.openProviderSettings();
+        await signingTemplatesPage.selectProcasaProviderIfNotSelected();
+
+        // Go to Templates → "+Create Template" → verify "Create Signing Template" form opens
+        await signingTemplatesPage.openTemplates();
+        await signingTemplatesPage.clickCreateTemplateAndVerifyFormOpens();
+
+        // Read all fields on the form
+        await signingTemplatesPage.readFormFields();
+
+        // AI-generate a unique template name + short description, select roles, upload a 3-6MB PDF
+        const { name: templateName } = await signingTemplatesPage.fillTemplateNameAndDescription();
+        await signingTemplatesPage.selectRoles();
+        await signingTemplatesPage.uploadSigningDocument();
+
+        // Verify "Next" is enabled once all required fields are filled, then proceed
+        await signingTemplatesPage.verifyNextEnabledAndClick();
+
+        // Signing Order step — verify the "Set signing order" checkbox is checked, then proceed
+        await signingTemplatesPage.verifySigningOrderCheckedAndProceed();
+
+        // Email step — fill subject/body and submit
+        await signingTemplatesPage.fillEmailAndCreateTemplate(templateName);
+
+        // App auto-opens the new template in the field editor — place a signature field
+        // for each recipient (Agent, then Director of agent services) and save
+        await signingTemplatesPage.waitForTemplateEditorToOpen();
+        await signingTemplatesPage.placeSignatureFieldsForBothRecipients();
+        await signingTemplatesPage.saveTemplate();
     });
 
 });

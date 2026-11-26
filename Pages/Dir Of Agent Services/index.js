@@ -18,4 +18,5 @@ module.exports = {
     ...require('./CalendarPage'),
     ...require('./ChecklistPage'),
     ...require('./checklistDashboardPage'),
+    ...require('./SigningTemplatesPage'),
 };

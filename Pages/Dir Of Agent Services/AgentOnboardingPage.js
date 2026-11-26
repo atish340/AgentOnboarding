@@ -2225,6 +2225,18 @@ exports.AgentOnboardingPage = class AgentOnboardingPage {
             }
         } // end if (!reachedStage3)
 
+        // Step 4: "Confirmation To MC" step comes before Invite Agent — fill MC Email → Send & Next
+        // (subject and body are pre-filled by the template)
+        const mcEmailInput = this.page.locator('input[type="email"][placeholder="Enter Email"]');
+        if (await mcEmailInput.isVisible({ timeout: 8000 }).catch(() => false)) {
+            await mcEmailInput.fill('atishj@valueaddsofttech.com');
+            // button text is padded (" Send & Next "), so match the accessible name rather than an anchored regex
+            await this.page.getByRole('button', { name: /send\s*&\s*next/i }).first().click();
+            console.log('>>> Confirmation To MC: MC email filled → Send & Next');
+            await this.waitForLoader().catch(() => {});
+            await this.page.waitForTimeout(2000).catch(() => {});
+        }
+
         // Step 5: find and click "Invite Agent" button
         const inviteBtn = this.page.locator('button').filter({ hasText: /invite\s*agent/i }).first();
         const inviteVisible = await inviteBtn.isVisible({ timeout: 20000 }).catch(() => false);

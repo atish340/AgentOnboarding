@@ -6,7 +6,8 @@ class DocumentPage {
         this.navigateToDocLibrary = page.locator('//a[@href="/documentlibrary"]').nth(1);
         this.pageTitle = page.locator('//*[@class="inline-block text-xl leading-normal mb-2 font-bold text-black tracking-tight mr-2"]');
         this.mcFolder = page.locator('//*[@class="card w-[187px] bg-base-100 rounded-lg h-full flex justify-between"]');
-        this.downloadDocument = page.getByTestId('doclib-document-6981a6267d014bbaafa2ba6b').getByRole('img', { name: 'Document' });
+        // First document in the opened folder (document IDs change whenever QA data is reset)
+        this.downloadDocument = page.locator('[data-testid^="doclib-document-"]').first().getByRole('img', { name: 'Document' });
         this.myFolder = page.locator('//a[@href="/myFolder"]');
         this.addFolderButton = page.locator('//button[@class="h-[42px] w-[146px] text-white bg-[#0000FE] hover:bg-[#3232FF] rounded-lg"]');
         this.folderTitle = page.locator('//*[@class="font-bold text-lg mb-4 mt-[-12px]"]').nth(0);

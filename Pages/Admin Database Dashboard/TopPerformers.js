@@ -92,6 +92,7 @@ class TopPerformersPage {
             // Give it one more chance to close
             await this.modalDialog.waitFor({ state: 'hidden', timeout: 10000 });
         }
+        return selectedName;
     }
 
     async searchPerformer(name) {

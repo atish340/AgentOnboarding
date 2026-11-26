@@ -27,10 +27,11 @@ class UserSearchPage {
     async searchUser(name) {
         await this.searchInput.click();
         await this.searchInput.fill(name);
-        await this.searchButton.click();
+        // Enter triggers the search — the class-based search button isn't always rendered (e.g. after an import)
+        await this.searchInput.press('Enter');
         await this.waitForLoader();
         const regex = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        await expect(this.page.getByText(regex).first()).toBeVisible({ timeout: 15000 });
+        await expect(this.page.locator('table tbody tr td:nth-child(3)').filter({ hasText: regex }).first()).toBeVisible({ timeout: 15000 });
     }
 
     async openFilters() {
